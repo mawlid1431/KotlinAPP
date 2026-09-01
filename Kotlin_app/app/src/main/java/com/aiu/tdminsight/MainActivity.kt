@@ -1,0 +1,236 @@
+package com.aiu.tdminsight
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.Mail
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aiu.tdminsight.auth.AuthState
+import com.aiu.tdminsight.ui.LocalUserPrefs
+import com.aiu.tdminsight.ui.ThemePref
+import com.aiu.tdminsight.ui.UserPrefs
+import com.aiu.tdminsight.ui.rememberUserPrefs
+import com.aiu.tdminsight.ui.navigation.TdmNavGraph
+import com.aiu.tdminsight.ui.screens.LoginScreen
+import com.aiu.tdminsight.ui.screens.SignUpScreen
+import com.aiu.tdminsight.ui.theme.TDMInsightTheme
+import com.aiu.tdminsight.ui.theme.TdmNumericMono
+import com.aiu.tdminsight.ui.theme.tdm
+import com.aiu.tdminsight.viewmodel.AuthViewModel
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            val prefs = rememberUserPrefs()
+            CompositionLocalProvider(LocalUserPrefs provides prefs) {
+                val theme by prefs.theme
+                val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+                val darkTheme = when (theme) {
+                    ThemePref.SYSTEM -> systemDark
+                    ThemePref.LIGHT  -> false
+                    ThemePref.DARK   -> true
+                }
+                TDMInsightTheme(darkTheme = darkTheme) {
+                    val accepted by prefs.disclaimerAccepted
+                    val authVm: AuthViewModel = viewModel()
+                    val authState by authVm.authState.collectAsState()
+                    var showSignUp by remember { mutableStateOf(false) }
+
+                    when {
+                        !accepted -> FirstLaunchDisclaimer {
+                            prefs.disclaimerAccepted.value = true
+                        }
+                        // Skip auth gate when Clerk is not configured (placeholder keys)
+                        !authVm.isConfigured || authState is AuthState.Authenticated -> TdmNavGraph()
+                        showSignUp -> SignUpScreen(
+                            authState = authState,
+                            onSignUp  = { email, pw -> authVm.signUp(email, pw) },
+                            onGoToLogin = { showSignUp = false; authVm.clearError() },
+                        )
+                        else -> LoginScreen(
+                            authState  = authState,
+                            onSignIn   = { email, pw -> authVm.signIn(email, pw) },
+                            onGoToSignUp = { showSignUp = true; authVm.clearError() },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ZEN. "Begin your practice" style — dark cosmic background, bold heading, CTA buttons
+@Composable
+private fun FirstLaunchDisclaimer(onAccept: () -> Unit) {
+    // Dark deep-navy gradient background (ZEN. "Begin your practice" screen)
+    val bgGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF0A0E1A),
+            Color(0xFF101524),
+            Color(0xFF0F1117),
+        )
+    )
+    // Accent decorative blobs (like ZEN. cosmic background)
+    val blob1 = Color(0xFF3B6CC0).copy(alpha = 0.25f)
+    val blob2 = Color(0xFF7B3FC4).copy(alpha = 0.18f)
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(brush = bgGradient)
+    ) {
+        // Decorative blobs
+        Box(
+            Modifier
+                .size(300.dp)
+                .clip(CircleShape)
+                .background(blob1)
+                .align(Alignment.TopEnd)
+                .offset(x = 80.dp, y = (-60).dp)
+        )
+        Box(
+            Modifier
+                .size(220.dp)
+                .clip(CircleShape)
+                .background(blob2)
+                .align(Alignment.BottomStart)
+                .offset(x = (-50).dp, y = 60.dp)
+        )
+
+        // Content
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 28.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Top logo mark
+            Spacer(Modifier.height(40.dp))
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.12f)
+                ) {
+                    Icon(
+                        Icons.Outlined.MedicalServices,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(10.dp).size(22.dp)
+                    )
+                }
+                Text(
+                    "TDM Insight",
+                    style = TdmNumericMono.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 1.2.sp
+                    ),
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            }
+
+            // Hero heading (ZEN. "Begin your practice")
+            Column {
+                Text(
+                    "Begin your\npractice",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 36.sp,
+                        lineHeight = 44.sp
+                    ),
+                    color = Color.White
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Academic prototype for CDE2313.\nAll cases must be fictional.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.65f)
+                )
+            }
+
+            // CTA buttons (ZEN. Apple / Google / Email style)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Primary CTA — "I understand" (matches ZEN. Apple/Google button)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White)
+                        .clickable { onAccept() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "I understand — get started",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color(0xFF0A0E1A)
+                    )
+                }
+
+                // Secondary info row (ZEN. "Continue with Email" style)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Mail,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.75f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            "Not for real patient data",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.75f)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Disclaimer footer text
+                Text(
+                    "TDM Insight is an academic software prototype (CDE2313 · AIU).\n" +
+                    "Output is a teaching aid — never use for real prescribing decisions.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.40f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(20.dp))
+            }
+        }
+    }
+}

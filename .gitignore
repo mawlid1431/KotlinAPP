@@ -1,0 +1,30 @@
+# Gradle / Android Studio
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Output APKs
+apk/app-release.apk
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# Submission documents — kept local, not pushed to Git
+Instruction_for_submission-DOCS/
+Submission-DOC/

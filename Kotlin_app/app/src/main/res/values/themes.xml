@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The Compose theme in `ui/theme/Theme.kt` is the source of truth for all colors,
+      typography, and shapes. We only need a minimal Material 3 DayNight base theme
+      here so the launcher splash, the activity container, and the splash-icon
+      don't show as a white block before Compose takes over.
+    -->
+    <style name="Theme.TDMInsight" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>
