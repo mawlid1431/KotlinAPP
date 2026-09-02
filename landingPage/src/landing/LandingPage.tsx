@@ -26,6 +26,7 @@ import {
   AdminDashboardScreen,
   CheckoutScreen,
   HomeScreen,
+  LoginScreen,
   RewardsScreen,
   SuccessScreen,
   TrackingScreen,
@@ -303,6 +304,7 @@ export function LandingPage() {
               <InteractivePhone
                 width={310}
                 screens={[
+                  { key: 'login', label: 'Sign in', node: <LoginScreen /> },
                   { key: 'home', label: 'Home', node: <HomeScreen /> },
                   { key: 'input', label: 'Patient inputs', node: <CheckoutScreen /> },
                   { key: 'calc', label: 'Calculating', node: <TrackingScreen /> },
