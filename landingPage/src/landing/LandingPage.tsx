@@ -120,6 +120,24 @@ const INSTITUTIONS = [
 
 const MARQUEE_WORDS = ['Calculate', 'Monitor', 'Dose', 'Vancomycin', 'AUC₂₄', 'PK Parameters', 'Sawchuk–Zaske'];
 
+const TEAM = [
+  { name: 'Mowlid Haibe',       role: 'Student Developer', photo: '/team/mowlid.jpg' },
+  { name: 'Abdinaazir Mustafe', role: 'Student Developer', photo: '/team/abdinaazir.jpg' },
+  { name: 'Elham Ahmedngus',    role: 'Student Developer', photo: '/team/elham.jpg' },
+];
+
+/* ── Silhouette avatar ──────────────────────────────────────────────── */
+function SilhouetteSvg() {
+  return (
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ width: '100%', height: '100%' }}>
+      {/* Head */}
+      <circle cx="50" cy="34" r="20" fill="#111827" />
+      {/* Shoulders / body */}
+      <path d="M10 100 Q10 68 50 68 Q90 68 90 100 Z" fill="#111827" />
+    </svg>
+  );
+}
+
 /* ── Small building blocks ──────────────────────────────────────────── */
 
 function DownloadBadges() {
@@ -627,6 +645,50 @@ export function LandingPage() {
                       <ArrowUpRight size={14} strokeWidth={2.5} />
                     </p>
                   </article>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Team ─────────────────────────────────────────────── */}
+        <section className="lp-section lp-section--team" id="team">
+          <div className="lp-shell">
+            <SectionHead
+              eyebrow="Our Team"
+              title="The people behind TDM Insight"
+              lead="Developed as an academic project at Al-Madinah International University (AIU)."
+            />
+
+            <div className="lp-team-grid">
+              {/* Supervisor — larger card, first */}
+              <Reveal kind="rise" delay={0}>
+                <div className="lp-glass-card lp-glass-card--lg">
+                  <div className="lp-glass-card__photo">
+                    <img src="/team/supervisor.jpg" alt="Ts. Mohd Zulkifli Mohd Zaki" className="lp-glass-card__img" />
+                  </div>
+                  <div className="lp-glass-card__overlay">
+                    <div className="lp-glass-card__badge">Supervisor</div>
+                    <p className="lp-glass-card__name">Ts. Mohd Zulkifli<br />Mohd Zaki</p>
+                    <p className="lp-glass-card__role">Lecturer · Faculty of CS &amp; IT</p>
+                  </div>
+                </div>
+              </Reveal>
+
+              {/* Students */}
+              {TEAM.map((member, i) => (
+                <Reveal key={member.name} kind="rise" delay={(i + 1) * 110}>
+                  <div className="lp-glass-card">
+                    <div className="lp-glass-card__photo">
+                      {member.photo
+                        ? <img src={member.photo} alt={member.name} className="lp-glass-card__img" />
+                        : <SilhouetteSvg />}
+                    </div>
+                    <div className="lp-glass-card__overlay">
+                      <p className="lp-glass-card__name">{member.name}</p>
+                      <p className="lp-glass-card__role">{member.role}</p>
+                    </div>
+                  </div>
                 </Reveal>
               ))}
             </div>

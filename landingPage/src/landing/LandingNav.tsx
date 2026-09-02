@@ -13,7 +13,7 @@ const LINKS = [
   { href: '#how', label: 'How it works' },
   { href: '#results', label: 'Results' },
   { href: '#reviews', label: 'Reviews' },
-  { href: '#about', label: 'About' },
+  { href: '#team', label: 'Team' },
 ] as const;
 
 /** Highlights the nav item whose section is currently on screen. */
