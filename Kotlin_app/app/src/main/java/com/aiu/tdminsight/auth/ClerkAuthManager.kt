@@ -31,6 +31,10 @@ class ClerkAuthManager(private val publishableKey: String) {
 
     private val frontendApiUrl: String = deriveFrontendApiUrl(publishableKey)
 
+    init {
+        android.util.Log.d("ClerkAuthManager", "key='$publishableKey', derivedUrl='$frontendApiUrl'")
+    }
+
     private val http = HttpClient(OkHttp) {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true; isLenient = true })
@@ -149,24 +153,22 @@ class ClerkAuthManager(private val publishableKey: String) {
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private fun deriveFrontendApiUrl(key: String): String {
+        if (key.isBlank()) return ""
         return try {
-            val base64Clean = key
+            var base64 = key
                 .removePrefix("pk_live_")
                 .removePrefix("pk_test_")
                 .trimEnd('$', '\n', '\r', ' ')
-            if (base64Clean.isBlank()) return ""
 
-            val padLength = (4 - (base64Clean.length % 4)) % 4
-            val padded = base64Clean + "=".repeat(padLength)
+            base64 = base64.replace('-', '+').replace('_', '/')
+            val pad = (4 - (base64.length % 4)) % 4
+            base64 += "=".repeat(pad)
 
-            val decodedBytes = try {
-                Base64.decode(padded, Base64.DEFAULT)
-            } catch (_: Exception) {
-                Base64.decode(padded, Base64.URL_SAFE)
-            }
+            val decodedBytes = Base64.decode(base64, Base64.DEFAULT)
             val decoded = String(decodedBytes).trimEnd('$', '\n', '\r', ' ')
             if (decoded.isNotBlank()) "https://$decoded" else ""
         } catch (e: Exception) {
+            android.util.Log.e("ClerkAuthManager", "Failed to derive URL from key '$key': ${e.message}", e)
             ""
         }
     }

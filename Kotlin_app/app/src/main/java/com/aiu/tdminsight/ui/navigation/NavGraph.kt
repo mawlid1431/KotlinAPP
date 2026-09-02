@@ -35,9 +35,8 @@ fun TdmNavGraph() {
     val vm: CaseViewModel = viewModel()
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH,
+        startDestination = Routes.HOME,
     ) {
-        composable(Routes.SPLASH)            { SplashScreen(navController) }
         composable(Routes.HOME)              { HomeScreen(navController) }
         composable(Routes.NEW_CASE)          { NewCaseScreen(navController, vm = vm) }
         composable(Routes.MEDICATION_SELECT) { MedicationSelectScreen(navController, vm = vm) }

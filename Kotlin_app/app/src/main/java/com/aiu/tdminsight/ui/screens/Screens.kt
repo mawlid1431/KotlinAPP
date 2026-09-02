@@ -51,10 +51,10 @@ import com.aiu.tdminsight.viewmodel.CaseViewModel
 // 01 · SPLASH
 // ════════════════════════════════════════════════════════════════════════════
 @Composable
-fun SplashScreen(nav: NavController) {
+fun SplashScreen(onFinished: () -> Unit) {
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(1800)
-        nav.navigate(Routes.HOME) { popUpTo(Routes.SPLASH) { inclusive = true } }
+        onFinished()
     }
     Box(
         Modifier
