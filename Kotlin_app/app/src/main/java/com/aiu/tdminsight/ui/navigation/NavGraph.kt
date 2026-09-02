@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aiu.tdminsight.ui.screens.*
 import com.aiu.tdminsight.viewmodel.CaseViewModel
+import com.aiu.tdminsight.viewmodel.HistoryViewModel
 
 object Routes {
     const val SPLASH            = "splash"
@@ -30,14 +31,15 @@ object Routes {
 @Composable
 fun TdmNavGraph() {
     val navController = rememberNavController()
-    // Single VM instance shared across all wizard screens so user edits
-    // are not lost when navigating between destinations.
+    // Shared across all wizard screens so user edits survive navigation.
     val vm: CaseViewModel = viewModel()
+    // Shared across Home and History so both show the same live data.
+    val historyVm: HistoryViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = Routes.HOME,
     ) {
-        composable(Routes.HOME)              { HomeScreen(navController) }
+        composable(Routes.HOME)              { HomeScreen(navController, historyVm = historyVm) }
         composable(Routes.NEW_CASE)          { NewCaseScreen(navController, vm = vm) }
         composable(Routes.MEDICATION_SELECT) { MedicationSelectScreen(navController, vm = vm) }
         composable(Routes.WORKFLOW_SELECT)   { WorkflowSelectScreen(navController, vm = vm) }
@@ -53,7 +55,7 @@ fun TdmNavGraph() {
         composable(Routes.RESULTS)     { ResultsScreen(navController, vm = vm) }
         composable(Routes.EXPLANATION) { ExplanationScreen(navController, vm = vm) }
         composable(Routes.ERROR)       { ErrorScreen(navController, vm = vm) }
-        composable(Routes.HISTORY)     { HistoryScreen(navController) }
+        composable(Routes.HISTORY)     { HistoryScreen(navController, vm = historyVm) }
         composable(Routes.SETTINGS)    { SettingsScreen(navController) }
         composable(Routes.DISCLAIMER)  { DisclaimerScreen(navController) }
     }

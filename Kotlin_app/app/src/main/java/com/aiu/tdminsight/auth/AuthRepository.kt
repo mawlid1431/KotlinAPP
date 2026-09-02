@@ -55,7 +55,7 @@ class AuthRepository(
         return when (val r = clerk.signIn(email.trim(), password)) {
             is ClerkResult.Success -> {
                 saveSession(r.userId, r.email, r.sessionToken, r.sessionId)
-                AuthState.Authenticated(r.userId, r.email, r.sessionToken)
+                AuthState.Authenticated(r.userId, r.email, r.sessionToken, isNewUser = false)
             }
             is ClerkResult.Failure -> AuthState.Error(r.message)
         }
@@ -65,7 +65,7 @@ class AuthRepository(
         return when (val r = clerk.signUp(email.trim(), password)) {
             is ClerkResult.Success -> {
                 saveSession(r.userId, r.email, r.sessionToken, r.sessionId)
-                AuthState.Authenticated(r.userId, r.email, r.sessionToken)
+                AuthState.Authenticated(r.userId, r.email, r.sessionToken, isNewUser = true)
             }
             is ClerkResult.Failure -> AuthState.Error(r.message)
         }

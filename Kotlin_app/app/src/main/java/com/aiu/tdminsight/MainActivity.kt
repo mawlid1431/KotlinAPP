@@ -33,6 +33,7 @@ import com.aiu.tdminsight.ui.navigation.TdmNavGraph
 import com.aiu.tdminsight.ui.screens.LoginScreen
 import com.aiu.tdminsight.ui.screens.SignUpScreen
 import com.aiu.tdminsight.ui.screens.SplashScreen
+import com.aiu.tdminsight.ui.screens.WelcomeScreen
 import com.aiu.tdminsight.ui.theme.TDMInsightTheme
 import com.aiu.tdminsight.ui.theme.TdmNumericMono
 import com.aiu.tdminsight.ui.theme.tdm
@@ -56,10 +57,11 @@ class MainActivity : ComponentActivity() {
                     val accepted by prefs.disclaimerAccepted
                     val authVm: AuthViewModel = viewModel()
                     val authState by authVm.authState.collectAsState()
+                    val freshLogin by authVm.freshLogin.collectAsState()
                     var showSignUp by remember { mutableStateOf(false) }
                     var splashDone by remember { mutableStateOf(false) }
 
-                    android.util.Log.d("TdmAuth", "splashDone=$splashDone, accepted=$accepted, isConfigured=${authVm.isConfigured}, authState=$authState")
+                    android.util.Log.d("TdmAuth", "splashDone=$splashDone, accepted=$accepted, isConfigured=${authVm.isConfigured}, authState=$authState, freshLogin=$freshLogin")
 
                     when {
                         // 1. Splash screen always shows first on every launch
@@ -68,15 +70,29 @@ class MainActivity : ComponentActivity() {
                         !accepted -> FirstLaunchDisclaimer {
                             prefs.disclaimerAccepted.value = true
                         }
-                        // 3. Skip auth gate when Clerk is not configured (placeholder keys)
-                        !authVm.isConfigured || authState is AuthState.Authenticated -> TdmNavGraph()
-                        // 4. Sign-up screen
+                        // 3. Skip auth gate when Clerk is not configured (dev mode)
+                        !authVm.isConfigured -> TdmNavGraph()
+                        // 4. Restoring saved session — show nothing while SharedPreferences is read
+                        authState is AuthState.Loading -> Box(Modifier.fillMaxSize()
+                            .background(androidx.compose.ui.graphics.Color(0xFF0A0E1A)))
+                        // 5. Fresh login/signup: show welcome screen once, then go to app
+                        authState is AuthState.Authenticated && freshLogin -> {
+                            val auth = authState as AuthState.Authenticated
+                            WelcomeScreen(
+                                isNewUser  = auth.isNewUser,
+                                email      = auth.email,
+                                onContinue = { authVm.consumeWelcome() },
+                            )
+                        }
+                        // 6. Already authenticated (session restore or after welcome)
+                        authState is AuthState.Authenticated -> TdmNavGraph()
+                        // 7. Sign-up screen
                         showSignUp -> SignUpScreen(
                             authState = authState,
                             onSignUp  = { email, pw -> authVm.signUp(email, pw) },
                             onGoToLogin = { showSignUp = false; authVm.clearError() },
                         )
-                        // 5. Login screen (Clerk)
+                        // 8. Login screen (Clerk)
                         else -> LoginScreen(
                             authState  = authState,
                             onSignIn   = { email, pw -> authVm.signIn(email, pw) },

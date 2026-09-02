@@ -16,20 +16,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class CaseUiState(
-    // Defaulted to design's "filled & valid" preset so the app demonstrates
-    // an in-target case on first launch (per design screen 7).
     val patient: PatientInput        = PatientInput(
-        caseId = "Case #001", weightKg = 68.0, heightCm = 165.0,
-        ageLYears = 62, isMale = true, scrUmolL = 98.0,
+        caseId = "", weightKg = 0.0, heightCm = 0.0,
+        ageLYears = 0, isMale = true, scrUmolL = 0.0,
     ),
     val dosing: DosingInput          = DosingInput(
-        doseMg = 1000.0, intervalHours = 12.0, infusionDurationHours = 1.0,
+        doseMg = 0.0, intervalHours = 0.0, infusionDurationHours = 0.0,
     ),
     val pre: PreSampleInput          = PreSampleInput(
-        preDoseConcentration = 12.5, hoursBeforeDose = 11.5,
+        preDoseConcentration = 0.0, hoursBeforeDose = 0.0,
     ),
     val post: PostSampleInput        = PostSampleInput(
-        postDoseConcentration = 26.0, hoursAfterEndOfInfusion = 2.0,
+        postDoseConcentration = 0.0, hoursAfterEndOfInfusion = 0.0,
     ),
     val selectedWorkflow: VancoWorkflow = VancoWorkflow.PRE_POST,
     val validationReport: ValidationReport = ValidationReport(),

@@ -264,6 +264,93 @@ fun LoginScreen(
     }
 }
 
+// ── Welcome screen (shown once after fresh login or sign-up) ─────────────────
+
+@Composable
+fun WelcomeScreen(
+    isNewUser: Boolean,
+    email: String,
+    onContinue: () -> Unit,
+) {
+    val displayName = email.substringBefore("@").replaceFirstChar { it.uppercaseChar() }
+    val heading = if (isNewUser) "Welcome,\n$displayName!" else "Welcome back,\n$displayName!"
+    val sub = if (isNewUser)
+        "Your account is ready. Let's get started."
+    else
+        "Good to see you again. Your cases are waiting."
+
+    AuthBackground {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 28.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Spacer(Modifier.height(48.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.12f)) {
+                    Icon(
+                        Icons.Outlined.MedicalServices, contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(10.dp).size(22.dp),
+                    )
+                }
+                Text(
+                    "TDM Insight",
+                    style = TdmNumericMono.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 1.2.sp,
+                    ),
+                    color = Color.White.copy(alpha = 0.7f),
+                )
+            }
+
+            Column {
+                Text(
+                    heading,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 34.sp,
+                        lineHeight = 44.sp,
+                    ),
+                    color = Color.White,
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    sub,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.6f),
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White)
+                        .clickable { onContinue() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Continue to app  →",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = Color(0xFF0A0E1A),
+                    )
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+        }
+    }
+}
+
 // ── Sign-up screen ────────────────────────────────────────────────────────────
 
 @Composable

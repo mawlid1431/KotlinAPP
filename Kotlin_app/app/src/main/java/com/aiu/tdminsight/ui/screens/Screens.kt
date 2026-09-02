@@ -46,6 +46,7 @@ import com.aiu.tdminsight.ui.theme.TdmNumericMedium
 import com.aiu.tdminsight.ui.theme.TdmNumericSmall
 import com.aiu.tdminsight.ui.theme.TdmNumericMono
 import com.aiu.tdminsight.viewmodel.CaseViewModel
+import com.aiu.tdminsight.viewmodel.HistoryViewModel
 
 // ════════════════════════════════════════════════════════════════════════════
 // 01 · SPLASH
@@ -152,7 +153,14 @@ fun SplashScreen(onFinished: () -> Unit) {
 // 02 · HOME  (Fitness dashboard style)
 // ════════════════════════════════════════════════════════════════════════════
 @Composable
-fun HomeScreen(nav: NavController, vm: CaseViewModel = viewModel()) {
+fun HomeScreen(
+    nav: NavController,
+    vm: CaseViewModel = viewModel(),
+    historyVm: HistoryViewModel = viewModel(),
+) {
+    val recentEntries  by historyVm.entries.collectAsState()
+    val recentLoading  by historyVm.isLoading.collectAsState()
+
     Scaffold(
         bottomBar = { BottomNavBar(current = Routes.HOME) { nav.navigate(it) } },
         containerColor = MaterialTheme.colorScheme.background,
@@ -289,7 +297,21 @@ fun HomeScreen(nav: NavController, vm: CaseViewModel = viewModel()) {
             }
 
             Spacer(Modifier.height(12.dp))
-            RecentCasesEmpty()
+            when {
+                recentLoading -> {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                    }
+                }
+                recentEntries.isEmpty() -> RecentCasesEmpty()
+                else -> {
+                    recentEntries.take(3).forEach { entry ->
+                        RecentCaseRow(entry, nav)
+                        Spacer(Modifier.height(10.dp))
+                    }
+                }
+            }
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -391,11 +413,60 @@ private fun RecentCasesEmpty() {
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                "Cases you calculate appear here.\nEverything stays on this device.",
+                "Cases you calculate are saved to your account\nand appear here.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+@Composable
+private fun RecentCaseRow(entry: HistoryEntry, nav: NavController) {
+    val tdm = MaterialTheme.tdm
+    val inTarget = entry.auc24 in 400.0..600.0
+    val statusColor = when {
+        inTarget           -> tdm.success
+        entry.auc24 > 600.0 -> MaterialTheme.colorScheme.error
+        else               -> tdm.warning
+    }
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { nav.navigate(Routes.HISTORY) }
+    ) {
+        Row(
+            Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    entry.caseId,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    entry.date,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    "${"%.0f".format(entry.auc24)} mg·h/L",
+                    style = TdmNumericSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = statusColor
+                )
+                Text(
+                    "AUC₂₄",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -513,18 +584,18 @@ fun NewCaseScreen(nav: NavController, vm: CaseViewModel = viewModel()) {
                 onChange = { vm.updatePatient(s.patient.copy(caseId = it)) })
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumField("Weight", s.patient.weightKg, "kg", Modifier.weight(1f)) {
+                NumField("Weight", s.patient.weightKg, "kg", Modifier.weight(1f), hint = "e.g. 70") {
                     vm.updatePatient(s.patient.copy(weightKg = it)) }
-                NumField("Height", s.patient.heightCm, "cm", Modifier.weight(1f)) {
+                NumField("Height", s.patient.heightCm, "cm", Modifier.weight(1f), hint = "e.g. 165") {
                     vm.updatePatient(s.patient.copy(heightCm = it)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumField("Age", s.patient.ageLYears.toDouble(), "yr", Modifier.weight(1f)) {
+                NumField("Age", s.patient.ageLYears.toDouble(), "yr", Modifier.weight(1f), hint = "e.g. 45") {
                     vm.updatePatient(s.patient.copy(ageLYears = it.toInt().coerceAtLeast(0))) }
                 SexPicker(s.patient.isMale, Modifier.weight(1f)) {
                     vm.updatePatient(s.patient.copy(isMale = it)) }
             }
-            NumField("Serum creatinine", s.patient.scrUmolL, "µmol/L") {
+            NumField("Serum creatinine", s.patient.scrUmolL, "µmol/L", hint = "e.g. 90") {
                 vm.updatePatient(s.patient.copy(scrUmolL = it)) }
 
             // Live CrCl chip (Fitness-style stat card)
@@ -793,36 +864,36 @@ fun InputFormScreen(nav: NavController, workflow: String, vm: CaseViewModel = vi
 
             // Dosing group
             FormGroup("Dosing") {
-                NumField("Dose administered", s.dosing.doseMg, "mg") {
+                NumField("Dose administered", s.dosing.doseMg, "mg", hint = "e.g. 1000") {
                     vm.updateDosing(s.dosing.copy(doseMg = it)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     NumField("Infusion duration", s.dosing.infusionDurationHours, "hours",
-                        Modifier.weight(1f)) {
+                        Modifier.weight(1f), hint = "e.g. 1.0") {
                         vm.updateDosing(s.dosing.copy(infusionDurationHours = it)) }
                     NumField("Dosing interval τ", s.dosing.intervalHours, "hours",
-                        Modifier.weight(1f)) {
+                        Modifier.weight(1f), hint = "e.g. 12") {
                         vm.updateDosing(s.dosing.copy(intervalHours = it)) }
                 }
             }
 
             if (w == VancoWorkflow.PRE || w == VancoWorkflow.PRE_POST) {
-                FormGroup("Pre-dose sample") {
-                    NumField("Pre-dose (trough) concentration",
-                        s.pre.preDoseConcentration, "mg/L") {
+                FormGroup("Pre-dose sample (trough)") {
+                    NumField("Measured trough concentration",
+                        s.pre.preDoseConcentration, "mg/L", hint = "e.g. 10.5") {
                         vm.updatePreSample(s.pre.copy(preDoseConcentration = it)) }
-                    NumField("Pre-dose sample time",
-                        s.pre.hoursBeforeDose, "h after dose start") {
+                    NumField("Hours before next dose when sample was taken",
+                        s.pre.hoursBeforeDose, "h", hint = "e.g. 11.5") {
                         vm.updatePreSample(s.pre.copy(hoursBeforeDose = it)) }
                 }
             }
 
             if (w == VancoWorkflow.POST || w == VancoWorkflow.PRE_POST) {
-                FormGroup("Post-dose sample") {
-                    NumField("Post-dose concentration",
-                        s.post.postDoseConcentration, "mg/L") {
+                FormGroup("Post-dose sample (peak)") {
+                    NumField("Measured peak concentration",
+                        s.post.postDoseConcentration, "mg/L", hint = "e.g. 25.0") {
                         vm.updatePostSample(s.post.copy(postDoseConcentration = it)) }
-                    NumField("Post-dose sample time",
-                        s.post.hoursAfterEndOfInfusion, "h after dose start") {
+                    NumField("Hours after end of infusion when sample was taken",
+                        s.post.hoursAfterEndOfInfusion, "h", hint = "e.g. 2.0") {
                         vm.updatePostSample(s.post.copy(hoursAfterEndOfInfusion = it)) }
                 }
             }
@@ -2104,7 +2175,7 @@ internal data class HistoryEntry(
 @Composable
 fun HistoryScreen(
     nav: NavController,
-    vm: com.aiu.tdminsight.viewmodel.HistoryViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    vm: HistoryViewModel = viewModel(),
 ) {
     val entries   by vm.entries.collectAsState()
     val isLoading by vm.isLoading.collectAsState()
@@ -2141,19 +2212,22 @@ fun HistoryScreen(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                if (isLive) "Your saved calculations" else "Demo cases — run a calculation to save your own",
+                if (isLive) "Your saved calculations" else "No calculations yet — complete a case to see your history",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
             )
             Spacer(Modifier.height(20.dp))
 
-            if (isLoading) {
-                Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+            when {
+                isLoading -> Box(
+                    Modifier.fillMaxWidth().padding(top = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator(modifier = Modifier.size(32.dp))
                 }
-            } else {
-                entries.forEach { entry ->
+                entries.isEmpty() -> RecentCasesEmpty()
+                else -> entries.forEach { entry ->
                     HistoryCaseCard(entry)
                     Spacer(Modifier.height(16.dp))
                 }
@@ -2530,7 +2604,7 @@ private fun TextField6(label: String, value: String, onChange: (String) -> Unit)
             onValueChange = onChange,
             placeholder = {
                 Text(
-                    "Enter ${label.lowercase().replace(" (fictional)", "")}…",
+                    "e.g. Case-001 or a short patient code",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
                 )
@@ -2557,7 +2631,7 @@ private fun TextField6(label: String, value: String, onChange: (String) -> Unit)
 @Composable
 private fun NumField(
     label: String, value: Double, unit: String,
-    modifier: Modifier = Modifier, onChange: (Double) -> Unit
+    modifier: Modifier = Modifier, hint: String = "", onChange: (Double) -> Unit
 ) {
     var text by remember { mutableStateOf(if (value == 0.0) "" else value.toString()) }
     val lastExternal = remember { mutableStateOf(value) }
@@ -2579,7 +2653,7 @@ private fun NumField(
             },
             placeholder = {
                 Text(
-                    "0.0",
+                    hint.ifBlank { "Enter value" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                 )
