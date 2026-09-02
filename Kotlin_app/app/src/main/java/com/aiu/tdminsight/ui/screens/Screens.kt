@@ -1698,9 +1698,14 @@ private fun ExplanationPhase(n: Int, title: String, body: String) {
 // ════════════════════════════════════════════════════════════════════════════
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(nav: NavController) {
+fun SettingsScreen(
+    nav: NavController,
+    authVm: com.aiu.tdminsight.viewmodel.AuthViewModel = viewModel(),
+) {
     val prefs = LocalUserPrefs.current
     val theme by prefs.theme
+    val authState by authVm.authState.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -1754,6 +1759,51 @@ fun SettingsScreen(nav: NavController) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                             modifier = Modifier.padding(top = 3.dp))
+                    }
+                }
+            }
+
+            if (authState is com.aiu.tdminsight.auth.AuthState.Authenticated) {
+                val user = authState as com.aiu.tdminsight.auth.AuthState.Authenticated
+                Spacer(Modifier.height(26.dp))
+                SectionLabel("ACCOUNT")
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column {
+                        Row(
+                            Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Icon(Icons.Outlined.Person, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(user.email, style = MaterialTheme.typography.titleSmall)
+                                Text("User ID: ${user.userId}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 2.dp))
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        Row(
+                            Modifier.fillMaxWidth().clickable { authVm.signOut() }.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Icon(Icons.Outlined.ExitToApp, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp))
+                            Text("Sign out",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
             }

@@ -73,7 +73,7 @@ class SupabaseRepository(
 
     /**
      * Fetch the 20 most recent cases for the current user.
-     * Filters client-side by user_id so each student only sees their own work.
+     * Filters by user_id on PostgreSQL server so each user only receives their own work.
      * Returns an empty list on any failure (caller falls back to demo data).
      */
     internal suspend fun loadRecentCases(limit: Int = 20): List<HistoryEntry> {
@@ -81,12 +81,13 @@ class SupabaseRepository(
             val userId = authRepo.savedSession()?.userId ?: return emptyList()
             supabase.from(TABLE)
                 .select {
+                    filter {
+                        eq("user_id", userId)
+                    }
                     order("created_at", Order.DESCENDING)
-                    limit((limit * 4).toLong())   // over-fetch then filter client-side
+                    limit(limit.toLong())
                 }
                 .decodeList<CaseDto>()
-                .filter { it.userId == userId }
-                .take(limit)
                 .map { it.toHistoryEntry() }
         } catch (e: Exception) {
             Log.w(TAG, "loadRecentCases failed: ${e.message}")

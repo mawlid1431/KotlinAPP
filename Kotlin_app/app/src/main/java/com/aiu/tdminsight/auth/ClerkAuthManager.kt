@@ -37,7 +37,7 @@ class ClerkAuthManager(private val publishableKey: String) {
         }
     }
 
-    val isConfigured: Boolean get() = publishableKey.isNotBlank()
+    val isConfigured: Boolean get() = publishableKey.isNotBlank() && frontendApiUrl.isNotBlank()
 
     // ── Public API ────────────────────────────────────────────────────────
 
@@ -67,6 +67,16 @@ class ClerkAuthManager(private val publishableKey: String) {
                 }
                 else -> ClerkResult.Failure("Sign-in incomplete (status: ${signIn.status}).")
             }
+        } catch (e: io.ktor.client.plugins.ClientRequestException) {
+            val friendlyMsg = try {
+                val errPayload = e.response.body<ClerkErrorResponse>()
+                errPayload.errors?.firstOrNull()?.longMessage
+                    ?: errPayload.errors?.firstOrNull()?.message
+                    ?: "Invalid email or password."
+            } catch (_: Exception) {
+                "Sign-in failed. Please check your credentials."
+            }
+            ClerkResult.Failure(friendlyMsg)
         } catch (e: Exception) {
             ClerkResult.Failure("Sign-in failed: ${e.message}")
         }
@@ -96,10 +106,19 @@ class ClerkAuthManager(private val publishableKey: String) {
                     ClerkResult.Success(userId = userId, email = email, sessionToken = jwt, sessionId = sessionId)
                 }
                 signUp.status == "missing_requirements" ->
-                    // Email verification may be required — inform the user
                     ClerkResult.Failure("Email verification required. Check your inbox.")
                 else -> ClerkResult.Failure("Sign-up incomplete (status: ${signUp.status}).")
             }
+        } catch (e: io.ktor.client.plugins.ClientRequestException) {
+            val friendlyMsg = try {
+                val errPayload = e.response.body<ClerkErrorResponse>()
+                errPayload.errors?.firstOrNull()?.longMessage
+                    ?: errPayload.errors?.firstOrNull()?.message
+                    ?: "Sign-up failed."
+            } catch (_: Exception) {
+                "Sign-up failed. Please check your email and password requirements."
+            }
+            ClerkResult.Failure(friendlyMsg)
         } catch (e: Exception) {
             ClerkResult.Failure("Sign-up failed: ${e.message}")
         }
@@ -131,17 +150,40 @@ class ClerkAuthManager(private val publishableKey: String) {
 
     private fun deriveFrontendApiUrl(key: String): String {
         return try {
-            val base64Part = key
+            val base64Clean = key
                 .removePrefix("pk_live_")
                 .removePrefix("pk_test_")
-            val decoded = String(Base64.decode(base64Part, Base64.DEFAULT)).trimEnd('$', '\n')
-            "https://$decoded"
+                .trimEnd('$', '\n', '\r', ' ')
+            if (base64Clean.isBlank()) return ""
+
+            val padLength = (4 - (base64Clean.length % 4)) % 4
+            val padded = base64Clean + "=".repeat(padLength)
+
+            val decodedBytes = try {
+                Base64.decode(padded, Base64.DEFAULT)
+            } catch (_: Exception) {
+                Base64.decode(padded, Base64.URL_SAFE)
+            }
+            val decoded = String(decodedBytes).trimEnd('$', '\n', '\r', ' ')
+            if (decoded.isNotBlank()) "https://$decoded" else ""
         } catch (e: Exception) {
             ""
         }
     }
 
     // ── Wire-format models (Clerk Frontend API v1 responses) ─────────────
+
+    @Serializable
+    data class ClerkErrorResponse(
+        val errors: List<ClerkErrorItem>? = null,
+    )
+
+    @Serializable
+    data class ClerkErrorItem(
+        val message: String? = null,
+        @SerialName("long_message") val longMessage: String? = null,
+        val code: String? = null,
+    )
 
     @Serializable
     data class ClerkClientResponse(
