@@ -1,0 +1,180 @@
+/* ============================================================
+   TDM Insight brand loader.
+   Deliberately quiet: the logo tile sits still, a single hairline
+   blue arc sweeps around it, and a slim indeterminate bar shows
+   work is happening. No fake percentage — the app cannot know real
+   progress, so it never claims to.
+   ============================================================ */
+
+.ke-loader {
+  --ke-size: 96px;
+  --ke-accent: #1464A8;
+  --ke-accent-dark: #073A6B;
+  --ke-track: rgba(20, 100, 168, 0.16);
+
+  position: relative;
+  height: var(--ke-size);
+  width: var(--ke-size);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+/* The sweeping arc. A single stroked circle with a gap, rotating —
+   one moving element instead of a ring of blinking bars. */
+.ke-loader__arc {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  animation: ke-arc-spin 1.15s linear infinite;
+}
+
+.ke-loader__arc-track {
+  fill: none;
+  stroke: var(--ke-track);
+  stroke-width: 2.5;
+}
+
+.ke-loader__arc-head {
+  fill: none;
+  stroke: var(--ke-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  /* ~22% of the circumference, so it reads as a comet tail. */
+  stroke-dasharray: 62 220;
+  animation: ke-arc-breathe 2.3s ease-in-out infinite;
+}
+
+@keyframes ke-arc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Subtle length change keeps the sweep from feeling mechanical. */
+@keyframes ke-arc-breathe {
+  0%,
+  100% {
+    stroke-dasharray: 52 220;
+  }
+  50% {
+    stroke-dasharray: 96 220;
+  }
+}
+
+/* Brand mark — the app-icon tile, held steady at the centre. */
+.ke-loader__mark {
+  display: grid;
+  place-items: center;
+  height: 62%;
+  width: 62%;
+  overflow: hidden;
+  border-radius: 26%;
+  background: #ffffff;
+  box-shadow:
+    0 6px 18px -8px rgba(20, 100, 168, 0.35),
+    inset 0 0 0 1px rgba(20, 100, 168, 0.14);
+}
+
+.ke-loader__mark img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  padding: 14%;
+}
+
+/* ── Loading screen ───────────────────────────────────────── */
+
+.ke-loading {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1.35rem;
+  min-height: 58vh;
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.ke-loading--full {
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 65% 55% at 20% 8%, rgba(20, 100, 168, 0.1), transparent 60%),
+    linear-gradient(180deg, #f0f5fa 0%, #f8fafc 100%);
+}
+
+.ke-loading__wordmark {
+  font-family: 'Red Hat Display', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: #0d1a2a;
+}
+
+.ke-loading__tagline {
+  margin-top: 0.3rem;
+  font-family: 'Manrope', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ke-loading-accent, #1464A8);
+}
+
+.ke-loading__status {
+  font-family: 'Manrope', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.6;
+  color: #3a5068;
+}
+
+/* Slim indeterminate bar — a blue segment travelling across a track. */
+.ke-loading__bar {
+  position: relative;
+  height: 3px;
+  width: 132px;
+  overflow: hidden;
+  border-radius: 100px;
+  background: rgba(20, 100, 168, 0.16);
+}
+
+.ke-loading__bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 42%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, rgba(20, 100, 168, 0.25), #1464A8, rgba(20, 100, 168, 0.25));
+  animation: ke-bar-slide 1.45s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes ke-bar-slide {
+  0% {
+    left: -45%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ke-loader__arc,
+  .ke-loader__arc-head,
+  .ke-loading__bar::after {
+    animation: none;
+  }
+
+  /* Static but still legible as a loading state. */
+  .ke-loader__arc-head {
+    stroke-dasharray: 62 220;
+  }
+
+  .ke-loading__bar::after {
+    left: 0;
+    width: 100%;
+    opacity: 0.5;
+  }
+}

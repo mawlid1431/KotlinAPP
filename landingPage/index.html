@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>TDM Insight — Vancomycin TDM calculator for pharmacy students</title>
+    <meta
+      name="description"
+      content="TDM Insight is an academic Android app for vancomycin therapeutic drug monitoring. Enter a fictional patient case, derive PK parameters, and get a step-by-step formula walkthrough."
+    />
+    <meta name="theme-color" content="#1464A8" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" sizes="any" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/favicon.svg" color="#1464A8" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Red+Hat+Display:wght@600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Boot splash — inlined so it paints on the first frame before the app bundle loads. -->
+    <style>
+      #ke-boot {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 22px;
+        background:
+          radial-gradient(ellipse 70% 55% at 20% 8%, rgba(20, 100, 168, 0.1), transparent 60%),
+          radial-gradient(ellipse 55% 50% at 88% 82%, rgba(20, 100, 168, 0.07), transparent 60%),
+          linear-gradient(180deg, #f0f5fa 0%, #f8fafc 100%);
+        font-family: 'Manrope', 'Plus Jakarta Sans', system-ui, sans-serif;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
+      }
+
+      #ke-boot[data-done='true'] {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      #ke-boot .ring {
+        position: relative;
+        height: 104px;
+        width: 104px;
+        display: grid;
+        place-items: center;
+      }
+
+      #ke-boot .arc {
+        position: absolute;
+        inset: 0;
+        height: 100%;
+        width: 100%;
+        animation: ke-boot-spin 1.15s linear infinite;
+      }
+
+      #ke-boot .arc .track {
+        fill: none;
+        stroke: rgba(20, 100, 168, 0.16);
+        stroke-width: 2.5;
+      }
+
+      #ke-boot .arc .head {
+        fill: none;
+        stroke: #1464A8;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-dasharray: 62 220;
+      }
+
+      @keyframes ke-boot-spin {
+        to { transform: rotate(360deg); }
+      }
+
+      #ke-boot .core {
+        height: 62%;
+        width: 62%;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border-radius: 26%;
+        background: #fff;
+        box-shadow:
+          0 6px 18px -8px rgba(20, 100, 168, 0.35),
+          inset 0 0 0 1px rgba(20, 100, 168, 0.12);
+      }
+
+      #ke-boot .core img {
+        height: 100%;
+        width: 100%;
+        object-fit: contain;
+        padding: 14%;
+      }
+
+      #ke-boot .label {
+        font-family: 'Red Hat Display', 'Plus Jakarta Sans', system-ui, sans-serif;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: #0d1a2a;
+        text-align: center;
+        margin: 0;
+      }
+
+      #ke-boot .tag {
+        margin: 5px 0 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #1464A8;
+        text-align: center;
+      }
+
+      #ke-boot .bar {
+        position: relative;
+        height: 3px;
+        width: 132px;
+        overflow: hidden;
+        border-radius: 100px;
+        background: rgba(20, 100, 168, 0.14);
+      }
+
+      #ke-boot .bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 42%;
+        border-radius: 100px;
+        background: linear-gradient(
+          90deg,
+          rgba(20, 100, 168, 0.25),
+          #1464A8,
+          rgba(20, 100, 168, 0.25)
+        );
+        animation: ke-boot-slide 1.45s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+
+      @keyframes ke-boot-slide {
+        0%   { left: -45%; }
+        100% { left: 100%; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #ke-boot .arc,
+        #ke-boot .bar::after {
+          animation: none;
+        }
+        #ke-boot .bar::after {
+          left: 0;
+          width: 100%;
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ke-boot">
+      <div class="ring">
+        <svg class="arc" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track" cx="50" cy="50" r="45" />
+          <circle class="head" cx="50" cy="50" r="45" />
+        </svg>
+        <span class="core"><img src="/favicon.svg" alt="" width="64" height="64" /></span>
+      </div>
+      <div>
+        <p class="label">TDM Insight</p>
+        <p class="tag">Calculate · Monitor · Dose</p>
+      </div>
+      <span class="bar"></span>
+    </div>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

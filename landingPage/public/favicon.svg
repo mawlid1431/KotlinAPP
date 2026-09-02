@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TDM Insight">
+  <defs>
+    <linearGradient id="tdm-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E7AD4" />
+      <stop offset="1" stop-color="#073A6B" />
+    </linearGradient>
+  </defs>
+
+  <!-- Medical blue rounded-square tile -->
+  <rect width="64" height="64" rx="16" fill="url(#tdm-bg)" />
+
+  <!-- Erlenmeyer flask outline -->
+  <!-- Neck -->
+  <rect x="26" y="10" width="12" height="14" rx="2" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Shoulder to body -->
+  <path
+    d="M26 24 L14 48 Q12 53 17 54 H47 Q52 53 50 48 L38 24 Z"
+    fill="rgba(255,255,255,0.18)"
+    stroke="#ffffff"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <!-- Liquid fill inside flask -->
+  <path
+    d="M20 44 Q18 51 23 52 H41 Q46 51 44 44 Z"
+    fill="rgba(255,255,255,0.55)"
+  />
+  <!-- Bubbles -->
+  <circle cx="29" cy="47" r="2" fill="#ffffff" opacity="0.8"/>
+  <circle cx="36" cy="44" r="1.5" fill="#ffffff" opacity="0.6"/>
+  <!-- Stopper / cap on neck -->
+  <rect x="24" y="9" width="16" height="4" rx="2" fill="#ffffff" opacity="0.9"/>
+</svg>
