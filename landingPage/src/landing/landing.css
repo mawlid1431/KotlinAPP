@@ -2397,11 +2397,22 @@
 }
 
 /* Section head on dark background */
-.lp-section--team .lp-eyebrow { color: rgba(255,255,255,0.55); }
+.lp-section--team .lp-eyebrow {
+  color: #93c5fd;
+  background: rgba(147, 197, 253, 0.12);
+  border-color: rgba(147, 197, 253, 0.25);
+}
 .lp-section--team .lp-h2      { color: #ffffff; }
 .lp-section--team .lp-lead    { color: rgba(255,255,255,0.60); }
 
-/* Grid */
+/* Supervisor — centred alone above the student row */
+.lp-team-supervisor-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+/* Students grid — 3 in a row */
 .lp-team-grid {
   display: flex;
   flex-wrap: wrap;

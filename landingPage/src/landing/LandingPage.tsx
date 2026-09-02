@@ -314,15 +314,15 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── Word marquee divider ─────────────────────────────── */}
+        {/* ── Logo marquee divider ─────────────────────────────── */}
         <div className="lp-divider-marquee" aria-hidden>
           <div className="lp-divider-marquee__track">
             {[0, 1].map((copy) => (
               <span key={copy} className="lp-divider-marquee__item">
-                {MARQUEE_WORDS.map((word) => (
-                  <span key={word} style={{ display: 'inline-flex', alignItems: 'center', gap: '2.5rem' }}>
-                    {word}
-                    <FlaskConical size={15} strokeWidth={2.4} color="#1464A8" />
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '1.5rem' }}>
+                    <img src="/favicon.svg" alt="" width={28} height={28} style={{ borderRadius: 8, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.06em', color: '#1464A8', textTransform: 'uppercase' }}>TDM Insight</span>
                   </span>
                 ))}
               </span>
@@ -660,9 +660,9 @@ export function LandingPage() {
               lead="Developed as an academic project at Al-Madinah International University (AIU)."
             />
 
-            <div className="lp-team-grid">
-              {/* Supervisor — larger card, first */}
-              <Reveal kind="rise" delay={0}>
+            {/* Supervisor — centred, full row */}
+            <Reveal kind="rise" delay={0}>
+              <div className="lp-team-supervisor-row">
                 <div className="lp-glass-card lp-glass-card--lg">
                   <div className="lp-glass-card__photo">
                     <img src="/team/supervisor.jpg" alt="Ts. Mohd Zulkifli Mohd Zaki" className="lp-glass-card__img" />
@@ -673,9 +673,11 @@ export function LandingPage() {
                     <p className="lp-glass-card__role">Lecturer · Faculty of CS &amp; IT</p>
                   </div>
                 </div>
-              </Reveal>
+              </div>
+            </Reveal>
 
-              {/* Students */}
+            {/* 3 students in a row */}
+            <div className="lp-team-grid">
               {TEAM.map((member, i) => (
                 <Reveal key={member.name} kind="rise" delay={(i + 1) * 110}>
                   <div className="lp-glass-card">
