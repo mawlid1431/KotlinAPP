@@ -23,22 +23,28 @@
       rel="stylesheet"
     />
 
-    <!-- Boot splash — inlined so it paints on the first frame before the app bundle loads. -->
+    <!-- Boot splash — inlined so it paints on the first frame before the bundle loads. -->
     <style>
+      /* ── Root container ── */
       #ke-boot {
         position: fixed;
         inset: 0;
         z-index: 9999;
-        display: grid;
-        place-items: center;
-        align-content: center;
-        gap: 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        overflow: hidden;
         background:
-          radial-gradient(ellipse 70% 55% at 20% 8%, rgba(20, 100, 168, 0.1), transparent 60%),
-          radial-gradient(ellipse 55% 50% at 88% 82%, rgba(20, 100, 168, 0.07), transparent 60%),
-          linear-gradient(180deg, #f0f5fa 0%, #f8fafc 100%);
+          radial-gradient(ellipse 70% 55% at 22% 10%, rgba(20, 100, 168, 0.12), transparent 62%),
+          radial-gradient(ellipse 55% 50% at 86% 80%, rgba(20, 100, 168, 0.08), transparent 62%),
+          radial-gradient(ellipse 40% 35% at 50% 50%, rgba(20, 100, 168, 0.04), transparent 70%),
+          linear-gradient(180deg, #eef5fb 0%, #f8fafc 100%);
         font-family: 'Manrope', 'Plus Jakarta Sans', system-ui, sans-serif;
-        transition: opacity 0.4s ease, visibility 0.4s ease;
+        /* Fade-out when dismissed */
+        transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+                    visibility 0.65s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       #ke-boot[data-done='true'] {
@@ -47,87 +53,186 @@
         pointer-events: none;
       }
 
-      #ke-boot .ring {
-        position: relative;
-        height: 104px;
-        width: 104px;
-        display: grid;
-        place-items: center;
-      }
-
-      #ke-boot .arc {
+      /* ── Decorative background dots ── */
+      #ke-boot::before {
+        content: '';
         position: absolute;
         inset: 0;
-        height: 100%;
-        width: 100%;
-        animation: ke-boot-spin 1.15s linear infinite;
+        background-image:
+          radial-gradient(circle, rgba(20, 100, 168, 0.06) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 30%, transparent 80%);
+        -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 30%, transparent 80%);
+        pointer-events: none;
+      }
+
+      /* ── Logo ring wrapper ── */
+      #ke-boot .ring {
+        position: relative;
+        height: 120px;
+        width: 120px;
+        display: grid;
+        place-items: center;
+        /* Zoom in from 30% with spring ease, then settle */
+        animation: ke-logo-zoom 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+      }
+
+      @keyframes ke-logo-zoom {
+        0% {
+          opacity: 0;
+          transform: scale(0.25);
+          filter: blur(8px);
+        }
+        60% {
+          opacity: 1;
+          filter: blur(0px);
+        }
+        80% {
+          transform: scale(1.06);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+          filter: blur(0px);
+        }
+      }
+
+      /* ── Spinning arc around the logo ── */
+      #ke-boot .arc {
+        position: absolute;
+        inset: -6px;
+        height: calc(100% + 12px);
+        width: calc(100% + 12px);
+        animation: ke-boot-spin 1.8s linear infinite;
+        /* Arc starts spinning once logo arrives */
+        animation-delay: 0.5s;
+        opacity: 0;
+        animation-fill-mode: forwards;
+      }
+
+      @keyframes ke-boot-spin {
+        0%   { transform: rotate(0deg);   opacity: 1; }
+        100% { transform: rotate(360deg); opacity: 1; }
       }
 
       #ke-boot .arc .track {
         fill: none;
-        stroke: rgba(20, 100, 168, 0.16);
-        stroke-width: 2.5;
+        stroke: rgba(20, 100, 168, 0.13);
+        stroke-width: 2;
       }
 
       #ke-boot .arc .head {
         fill: none;
         stroke: #1464A8;
-        stroke-width: 2.5;
+        stroke-width: 2;
         stroke-linecap: round;
-        stroke-dasharray: 62 220;
+        stroke-dasharray: 55 230;
+        animation: ke-arc-breathe 2.8s ease-in-out infinite;
+        animation-delay: 0.5s;
       }
 
-      @keyframes ke-boot-spin {
-        to { transform: rotate(360deg); }
+      @keyframes ke-arc-breathe {
+        0%, 100% { stroke-dasharray: 42 230; }
+        50%       { stroke-dasharray: 90 230; }
       }
 
+      /* ── Logo tile (the icon inside the ring) ── */
       #ke-boot .core {
-        height: 62%;
-        width: 62%;
+        height: 72px;
+        width: 72px;
         display: grid;
         place-items: center;
         overflow: hidden;
-        border-radius: 26%;
-        background: #fff;
+        border-radius: 22px;
+        background: #ffffff;
         box-shadow:
-          0 6px 18px -8px rgba(20, 100, 168, 0.35),
-          inset 0 0 0 1px rgba(20, 100, 168, 0.12);
+          0 0 0 1px rgba(20, 100, 168, 0.10),
+          0 8px 32px -6px rgba(20, 100, 168, 0.30),
+          0 24px 48px -12px rgba(20, 100, 168, 0.15);
+        /* Subtle inner pulse after zoom lands */
+        animation: ke-core-glow 3s ease-in-out infinite;
+        animation-delay: 1s;
+      }
+
+      @keyframes ke-core-glow {
+        0%, 100% {
+          box-shadow:
+            0 0 0 1px rgba(20, 100, 168, 0.10),
+            0 8px 32px -6px rgba(20, 100, 168, 0.30),
+            0 24px 48px -12px rgba(20, 100, 168, 0.15);
+        }
+        50% {
+          box-shadow:
+            0 0 0 1px rgba(20, 100, 168, 0.18),
+            0 8px 32px -6px rgba(20, 100, 168, 0.45),
+            0 24px 48px -12px rgba(20, 100, 168, 0.25);
+        }
       }
 
       #ke-boot .core img {
         height: 100%;
         width: 100%;
         object-fit: contain;
-        padding: 14%;
+        padding: 12px;
+      }
+
+      /* ── Brand name ── */
+      #ke-boot .wordmark {
+        margin-top: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        opacity: 0;
+        transform: translateY(14px);
+        animation: ke-text-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation-delay: 0.75s;
+      }
+
+      @keyframes ke-text-rise {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       #ke-boot .label {
         font-family: 'Red Hat Display', 'Plus Jakarta Sans', system-ui, sans-serif;
-        font-size: 17px;
+        font-size: 20px;
         font-weight: 800;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.02em;
         color: #0d1a2a;
         text-align: center;
         margin: 0;
+        line-height: 1;
       }
 
       #ke-boot .tag {
-        margin: 5px 0 0;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.14em;
+        margin: 0;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
         color: #1464A8;
         text-align: center;
+        opacity: 0.85;
+      }
+
+      /* ── Progress bar ── */
+      #ke-boot .bar-wrap {
+        margin-top: 36px;
+        opacity: 0;
+        animation: ke-text-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation-delay: 1.05s;
       }
 
       #ke-boot .bar {
         position: relative;
         height: 3px;
-        width: 132px;
+        width: 140px;
         overflow: hidden;
         border-radius: 100px;
-        background: rgba(20, 100, 168, 0.14);
+        background: rgba(20, 100, 168, 0.12);
       }
 
       #ke-boot .bar::after {
@@ -135,49 +240,56 @@
         position: absolute;
         top: 0;
         bottom: 0;
-        width: 42%;
+        left: -50%;
+        width: 45%;
         border-radius: 100px;
         background: linear-gradient(
           90deg,
-          rgba(20, 100, 168, 0.25),
+          transparent,
           #1464A8,
-          rgba(20, 100, 168, 0.25)
+          transparent
         );
-        animation: ke-boot-slide 1.45s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        animation: ke-bar-slide 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        animation-delay: 1.05s;
       }
 
-      @keyframes ke-boot-slide {
-        0%   { left: -45%; }
-        100% { left: 100%; }
+      @keyframes ke-bar-slide {
+        0%   { left: -50%; }
+        100% { left: 110%; }
       }
 
+      /* ── Reduced-motion: skip to static state ── */
       @media (prefers-reduced-motion: reduce) {
-        #ke-boot .arc,
-        #ke-boot .bar::after {
-          animation: none;
-        }
-        #ke-boot .bar::after {
-          left: 0;
-          width: 100%;
-          opacity: 0.5;
-        }
+        #ke-boot .ring        { animation: none; opacity: 1; }
+        #ke-boot .arc         { animation: none; opacity: 1; }
+        #ke-boot .arc .head   { animation: none; }
+        #ke-boot .core        { animation: none; }
+        #ke-boot .wordmark    { animation: none; opacity: 1; transform: none; }
+        #ke-boot .bar-wrap    { animation: none; opacity: 1; }
+        #ke-boot .bar::after  { animation: none; left: 0; width: 100%; opacity: 0.4; }
       }
     </style>
   </head>
   <body>
-    <div id="ke-boot">
+    <div id="ke-boot" role="status" aria-label="TDM Insight loading">
       <div class="ring">
-        <svg class="arc" viewBox="0 0 100 100" aria-hidden="true">
-          <circle class="track" cx="50" cy="50" r="45" />
-          <circle class="head" cx="50" cy="50" r="45" />
+        <svg class="arc" viewBox="0 0 132 132" aria-hidden="true">
+          <circle class="track" cx="66" cy="66" r="58" />
+          <circle class="head"  cx="66" cy="66" r="58" />
         </svg>
-        <span class="core"><img src="/favicon.svg" alt="" width="64" height="64" /></span>
+        <span class="core">
+          <img src="/favicon.svg" alt="" width="72" height="72" />
+        </span>
       </div>
-      <div>
+
+      <div class="wordmark">
         <p class="label">TDM Insight</p>
         <p class="tag">Calculate · Monitor · Dose</p>
       </div>
-      <span class="bar"></span>
+
+      <div class="bar-wrap">
+        <div class="bar"></div>
+      </div>
     </div>
 
     <div id="root"></div>

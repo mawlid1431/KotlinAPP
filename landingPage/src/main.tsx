@@ -25,5 +25,6 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-requestAnimationFrame(() => requestAnimationFrame(dismissBootSplash));
-window.setTimeout(dismissBootSplash, 600);
+/* Wait at least 2 s so the logo zoom-in and staggered text animations
+   complete before the splash fades out. */
+window.setTimeout(dismissBootSplash, 2000);
