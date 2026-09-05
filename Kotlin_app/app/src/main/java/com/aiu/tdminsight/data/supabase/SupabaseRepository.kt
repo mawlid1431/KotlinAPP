@@ -182,6 +182,25 @@ class SupabaseRepository(
     }
 
     /**
+     * Deletes this user's saved cases, leaving their profile intact.
+     * Filtered by user_id, so it can never touch another user's cases.
+     */
+    suspend fun deleteAllCases(userId: String): Boolean {
+        if (userId.isBlank()) {
+            Log.w(TAG, "deleteAllCases refused: blank user id")
+            return false
+        }
+        return try {
+            supabase.from(TABLE).delete { filter { eq("user_id", userId) } }
+            Log.d(TAG, "Cleared saved cases for $userId")
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "deleteAllCases failed: ${e.message}")
+            false
+        }
+    }
+
+    /**
      * Removes every row this user owns, for the "Delete account" flow.
      *
      * Both deletes are filtered by `eq("user_id", userId)` with the id taken

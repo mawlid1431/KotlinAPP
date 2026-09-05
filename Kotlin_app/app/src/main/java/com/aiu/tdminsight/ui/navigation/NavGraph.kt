@@ -69,7 +69,7 @@ fun TdmNavGraph(authVm: AuthViewModel) {
         composable(Routes.EXPLANATION) { ExplanationScreen(navController, vm = vm) }
         composable(Routes.ERROR)       { ErrorScreen(navController, vm = vm) }
         composable(Routes.HISTORY)     { HistoryScreen(navController, vm = historyVm) }
-        composable(Routes.SETTINGS)    { SettingsScreen(navController, authVm = authVm) }
+        composable(Routes.SETTINGS)    { SettingsScreen(navController, historyVm = historyVm, authVm = authVm) }
         composable(Routes.PROFILE)     { ProfileScreen(navController, authVm = authVm) }
         composable(Routes.DISCLAIMER)  { DisclaimerScreen(navController) }
     }

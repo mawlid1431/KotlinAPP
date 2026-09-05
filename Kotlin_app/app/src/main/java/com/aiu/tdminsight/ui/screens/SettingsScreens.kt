@@ -62,6 +62,7 @@ import com.aiu.tdminsight.viewmodel.HistoryViewModel
 @Composable
 fun SettingsScreen(
     nav: NavController,
+    historyVm: HistoryViewModel,
     // Supplied by TdmNavGraph from the Activity-scoped instance. Do NOT default
     // this to viewModel(): inside a NavHost that yields a per-destination copy,
     // so signing out would update a ViewModel nobody is listening to.
@@ -72,6 +73,41 @@ fun SettingsScreen(
     val authState by authVm.authState.collectAsState()
     val deletion  by authVm.accountDeletion.collectAsState()
     var confirmDelete by remember { mutableStateOf(false) }
+
+    val savedCases by historyVm.entries.collectAsState()
+    var confirmClear by remember { mutableStateOf(false) }
+    var clearError   by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) { historyVm.load() }
+
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            icon = {
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error)
+            },
+            title = { Text("Clear saved cases?") },
+            text = {
+                Text(
+                    "This permanently deletes your ${savedCases.size} saved " +
+                        "${if (savedCases.size == 1) "case" else "cases"}. " +
+                        "Your account stays active. This cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmClear = false
+                    historyVm.clearAllCases { ok ->
+                        clearError = if (ok) null else "Could not clear your cases. Please try again."
+                    }
+                }) { Text("Clear", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClear = false }) { Text("Cancel") }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -286,7 +322,9 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    Modifier.padding(18.dp).clickable { },
+                    Modifier
+                        .padding(18.dp)
+                        .clickable(enabled = savedCases.isNotEmpty()) { confirmClear = true },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
@@ -295,7 +333,14 @@ fun SettingsScreen(
                         modifier = Modifier.size(22.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Clear saved cases", style = MaterialTheme.typography.titleSmall)
-                        Text("No cases saved",
+                        // Real count, read from the same Supabase-backed list the
+                        // History screen shows (was a hardcoded "No cases saved").
+                        Text(
+                            when (savedCases.size) {
+                                0    -> "No cases saved"
+                                1    -> "1 case saved"
+                                else -> "${savedCases.size} cases saved"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp))

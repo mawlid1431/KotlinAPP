@@ -27,6 +27,25 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
 
     init { load() }
 
+    /**
+     * Deletes every saved case for the signed-in user, then refreshes.
+     * Reports failure instead of optimistically emptying the list, so a failed
+     * delete leaves the cases visible rather than faking success.
+     */
+    fun clearAllCases(onResult: (Boolean) -> Unit = {}) {
+        val userId = (getApplication<android.app.Application>() as TdmApplication)
+            .authRepository.savedSession()?.userId
+        if (userId == null) {
+            onResult(false)
+            return
+        }
+        viewModelScope.launch {
+            val ok = supabaseRepo.deleteAllCases(userId)
+            if (ok) load()
+            onResult(ok)
+        }
+    }
+
     /** Re-fetch — called when the screen is re-entered or user triggers a refresh. */
     fun load() {
         viewModelScope.launch {

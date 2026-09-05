@@ -64,6 +64,11 @@ fun HistoryScreen(
     val isLoading by vm.isLoading.collectAsState()
     val isLive    by vm.isLiveData.collectAsState()
 
+    // Re-query on every entry. The ViewModel only loaded in its init{}, which
+    // runs once at sign-in - before any case has been saved - so a case saved
+    // later never showed up until the app was restarted.
+    LaunchedEffect(Unit) { vm.load() }
+
     Scaffold(
         topBar = {
             TopAppBar(

@@ -64,6 +64,10 @@ fun HomeScreen(
     historyVm: HistoryViewModel = viewModel(),
 ) {
     val recentEntries  by historyVm.entries.collectAsState()
+
+    // Same reason as HistoryScreen: refresh the recent list on every visit so a
+    // case saved during this session appears without restarting the app.
+    LaunchedEffect(Unit) { historyVm.load() }
     val recentLoading  by historyVm.isLoading.collectAsState()
 
     Scaffold(
