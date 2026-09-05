@@ -416,11 +416,24 @@ class ClerkAuthManager(
      */
     suspend fun hasValidSession(): Boolean? {
         if (!isConfigured) return null
-        // No device token means this install has no Clerk client at all, so any
-        // locally stored session is a leftover and cannot be revalidated.
-        if (deviceToken == null) return false
+        // Without a device token the client cannot be read at all. That is not
+        // proof the user signed out, so report "undetermined" and let the
+        // locally stored session stand.
+        if (deviceToken == null) return null
         return try {
-            fetchClient()?.sessions?.any { it.status == "active" } == true
+            val sessions = fetchClient()?.sessions
+            when {
+                // Clerk answered and the session is live.
+                sessions?.any { it.status == "active" } == true -> true
+                // Clerk knows this client and none of its sessions are active:
+                // the session really did end.
+                !sessions.isNullOrEmpty() -> false
+                // An empty client. Clerk rotates the device token across the
+                // Google round-trip, and a stale token reads exactly like this -
+                // indistinguishable from a signed-out user, so do not throw a
+                // good session away over it.
+                else -> null
+            }
         } catch (e: Exception) {
             android.util.Log.w(TAG, "hasValidSession undetermined: ${e.message}")
             null
