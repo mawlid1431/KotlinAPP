@@ -16,6 +16,10 @@ captures/
 # Output APKs
 apk/app-release.apk
 
+# ...except the one the landing page serves from its Download button.
+# Vercel builds from this repo, so if this file is ignored the download 404s.
+!landingPage/public/*.apk
+
 # OS
 .DS_Store
 Thumbs.db

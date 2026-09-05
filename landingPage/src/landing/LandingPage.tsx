@@ -21,9 +21,8 @@ import { BRAND_LOGO_URL, BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 import { LandingNav } from './LandingNav';
 import { Odometer } from './Odometer';
 import { Reveal } from './Reveal';
-import { InteractivePhone, LaptopMockup, PhoneMockup } from './devices';
+import { InteractivePhone, PhoneMockup } from './devices';
 import {
-  AdminDashboardScreen,
   CheckoutScreen,
   HomeScreen,
   LoginScreen,
@@ -443,19 +442,19 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── Platform: app + dashboard ────────────────────────── */}
+        {/* ── Platform: the app itself ─────────────────────────── */}
         <section className="lp-section lp-section--white" id="platform">
           <div className="lp-shell">
             <SectionHead
-              eyebrow="One connected platform"
-              title="The app students use, the dashboard educators track"
-              lead="Every calculation made in the app can be reviewed on the admin dashboard — case history, PK trends, workflow usage and result distributions, all in sync."
+              eyebrow="One connected app"
+              title="Everything a student needs, in one app"
+              lead="Every calculation is saved to your own private history — past inputs, PK trends and results, all in sync across your sessions and visible only to you."
             />
 
             <Reveal kind="zoom" delay={120} className="lp-cluster">
-              <LaptopMockup>
-                <AdminDashboardScreen />
-              </LaptopMockup>
+              <PhoneMockup width={286} float>
+                <TrackingScreen />
+              </PhoneMockup>
               <div className="lp-cluster__phone">
                 <PhoneMockup width={190} float>
                   <RewardsScreen />
@@ -467,8 +466,8 @@ export function LandingPage() {
               {[
                 { Icon: ClipboardList, title: 'Case history', body: 'Every calculation saved locally — review past inputs and results at any time.' },
                 { Icon: Activity, title: 'AUC trends', body: 'Track how AUC₂₄ estimates change as dosing regimens are adjusted.' },
-                { Icon: FlaskConical, title: 'Workflow analytics', body: 'See which sampling strategies are used most and where errors occur.' },
-                { Icon: Users, title: 'Student insight', body: 'Understand which steps students find hardest via explanation-screen usage.' },
+                { Icon: FlaskConical, title: 'Sampling strategies', body: 'Pre + post, post-only or trough-based — pick the workflow that matches your case.' },
+                { Icon: Users, title: 'Step-by-step learning', body: 'Every result links to an explanation screen showing the formulas behind it.' },
               ].map(({ Icon, title, body }, i) => (
                 <Reveal key={title} kind="rise" delay={i * 100}>
                   <article className="lp-card lp-card--cream lp-card--hover" style={{ height: '100%' }}>

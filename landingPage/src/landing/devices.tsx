@@ -127,12 +127,12 @@ export function InteractivePhone({
 }
 
 /**
- * Laptop frame used to showcase the admin dashboard alongside the app —
+ * Laptop frame used to showcase a wide screenshot alongside the app —
  * the template's wider "one-stop hub" device treatment.
  */
 export function LaptopMockup({ children }: { children: ReactNode }) {
   return (
-    <div className="lp-laptop" role="img" aria-label="TDM Insight admin dashboard">
+    <div className="lp-laptop" role="img" aria-label="TDM Insight on a laptop">
       <div className="lp-laptop__lid">
         <span className="lp-laptop__notch" />
         <div className="lp-laptop__screen">{children}</div>

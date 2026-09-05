@@ -4,9 +4,7 @@ import { BRAND_LOGO_URL, BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 import { useScrolled } from './useReveal';
 
 /**
- * Public navigation only. The admin dashboard is deliberately NOT linked
- * from anywhere on the landing page — staff reach it by navigating to
- * /admin directly, which keeps the login surface unadvertised.
+ * Public navigation for the landing page.
  */
 const LINKS = [
   { href: '#features', label: 'Features' },
