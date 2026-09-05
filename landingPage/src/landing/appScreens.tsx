@@ -5,17 +5,12 @@
  */
 import {
   Activity,
-  AlertCircle,
   ArrowRight,
-  BarChart2,
-  BookOpen,
   Check,
-  ChevronRight,
   ClipboardList,
   FlaskConical,
   History,
   Home,
-  Info,
   Settings,
   Wifi,
   BatteryFull,

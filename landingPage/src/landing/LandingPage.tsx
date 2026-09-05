@@ -119,8 +119,6 @@ const INSTITUTIONS = [
   { name: 'Open source', detail: 'Kotlin · Jetpack Compose · Material 3' },
 ];
 
-const MARQUEE_WORDS = ['Calculate', 'Monitor', 'Dose', 'Vancomycin', 'AUC₂₄', 'PK Parameters', 'Sawchuk–Zaske'];
-
 const TEAM = [
   { name: 'Mowlid Haibe', role: 'Student Developer', photo: '/team/mowlid.jpg' },
   { name: 'Abdinaazir Mustafe', role: 'Student Developer', photo: '/team/abdinaazir.jpg' },
@@ -139,12 +137,16 @@ function SilhouetteSvg() {
   );
 }
 
+/** Built APK served from public/. `download` makes the browser save it
+ *  instead of navigating, which Android needs to hand it to the installer. */
+const APK_URL = "/TDM-Insight.apk";
+
 /* ── Small building blocks ──────────────────────────────────────────── */
 
 function DownloadBadges() {
   return (
     <>
-      <a href="#download" className="lp-store">
+      <a href={APK_URL} download className="lp-store">
         <Play size={18} strokeWidth={2} fill="currentColor" />
         <span>
           <span className="lp-store__kicker">Download for Android</span>
@@ -727,7 +729,7 @@ export function LandingPage() {
                     marginTop: '2.25rem',
                   }}
                 >
-                  <a href="#download" className="lp-btn lp-btn--light">
+                  <a href={APK_URL} download className="lp-btn lp-btn--light">
                     <Play size={17} strokeWidth={2} fill="currentColor" />
                     Download APK
                   </a>
