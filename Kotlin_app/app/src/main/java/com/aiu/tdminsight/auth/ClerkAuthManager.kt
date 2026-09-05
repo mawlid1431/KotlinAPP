@@ -47,6 +47,14 @@ class ClerkAuthManager(
         private const val TAG = "ClerkAuthManager"
         private const val KEY_DEVICE_TOKEN = "clerk_device_token"
 
+        /** Parameter names Clerk has used for the rotated device token. */
+        private val TOKEN_PARAMS = listOf(
+            "__clerk_db_jwt",
+            "__dev_session",
+            "__session",
+            "__clerk_handshake",
+        )
+
         /** Must match the intent-filter registered for MainActivity in AndroidManifest.xml. */
         const val OAUTH_REDIRECT_URL = "tdminsight://oauth-callback"
     }
@@ -220,9 +228,15 @@ class ClerkAuthManager(
      * has never signed up before, Clerk marks the attempt "transferable" and the
      * app must convert it into a sign-up before a session exists.
      */
-    suspend fun completeGoogleOAuth(): ClerkResult {
+    suspend fun completeGoogleOAuth(callbackUrl: String? = null): ClerkResult {
         if (!isConfigured) return notConfigured()
         return try {
+            // Clerk ROTATES the device token across the browser round-trip and
+            // hands the new one back on the redirect URL. Without adopting it,
+            // GET /v1/client below is asking about the OLD client - the one that
+            // never completed the OAuth - so it legitimately reports no session.
+            adoptDeviceTokenFrom(callbackUrl)
+
             val client = fetchClient()
                 ?: return ClerkResult.Failure("Could not read the Clerk session after Google sign-in.")
 
@@ -231,8 +245,17 @@ class ClerkAuthManager(
                     ?: ClerkResult.Failure("Google sign-in returned an unusable session.")
             }
 
-            // New Google user — transfer the OAuth attempt into a sign-up.
-            val transferable = client.signIn?.status == "transferable" ||
+            // New Google user -> Clerk wants the OAuth attempt converted into a
+            // sign-up. IMPORTANT: Clerk reports this on the VERIFICATION, not on
+            // the sign-in itself. A first-time Google user looks like:
+            //     sign_in.status                            = "needs_identifier"
+            //     sign_in.first_factor_verification.status  = "transferable"
+            //     ...error.code                             = "external_account_not_found"
+            // Checking only sign_in.status therefore misses every new user and
+            // reports "sign-in did not complete" even though Google succeeded.
+            val verification = client.signIn?.firstFactorVerification
+            val transferable = verification?.status == "transferable" ||
+                client.signIn?.status == "transferable" ||
                 client.signUp?.status == "missing_requirements"
             if (transferable) {
                 val httpResponse = http.submitForm(
@@ -245,10 +268,22 @@ class ClerkAuthManager(
                 val session = response.client?.sessions?.firstOrNull()
                     ?: fetchClient()?.sessions?.firstOrNull()
                 return toSuccess(session, fallbackEmail = "", isNewUser = true)
-                    ?: ClerkResult.Failure("Google sign-up did not complete. Please try again.")
+                    ?: ClerkResult.Failure(
+                        "Google sign-up did not complete (transfer status: " +
+                            "${response.response?.status}). Please try again."
+                    )
             }
 
-            ClerkResult.Failure("Google sign-in did not complete. Please try again.")
+            // Surface what Clerk actually said rather than a generic message,
+            // so a failure here is diagnosable from the screen.
+            val clerkReason = verification?.error?.longMessage
+                ?: verification?.error?.message
+            val statusInfo = "sign_in=${client.signIn?.status}, verification=${verification?.status}"
+            android.util.Log.w(TAG, "Google sign-in incomplete: $statusInfo, error=$clerkReason")
+            ClerkResult.Failure(
+                clerkReason?.let { "Google sign-in did not complete: $it" }
+                    ?: "Google sign-in did not complete. Please try again."
+            )
         } catch (e: io.ktor.client.plugins.ClientRequestException) {
             ClerkResult.Failure(errorMessage(e, "Google sign-in failed."))
         } catch (e: Exception) {
@@ -322,6 +357,54 @@ class ClerkAuthManager(
         } catch (e: Exception) {
             ClerkDeleteResult.Failure("Could not delete the Clerk account: ${e.message}")
         }
+    }
+
+    /**
+     * Adopts the rotated device token that Clerk appends to the OAuth redirect.
+     *
+     * Clerk names this parameter differently depending on instance type, so all
+     * the known spellings are checked. If none is present the existing token is
+     * kept, which is the correct behaviour for flows that do not rotate it.
+     */
+    private fun adoptDeviceTokenFrom(callbackUrl: String?) {
+        if (callbackUrl.isNullOrBlank()) return
+        android.util.Log.d(TAG, "OAuth callback: $callbackUrl")
+        val params = parseQueryParams(callbackUrl)
+        val rotated = TOKEN_PARAMS.firstNotNullOfOrNull { name ->
+            params[name]?.takeIf { it.isNotBlank() }
+        }
+        if (rotated != null) {
+            android.util.Log.d(TAG, "Adopted rotated device token from callback")
+            deviceToken = rotated
+        } else {
+            android.util.Log.w(
+                TAG,
+                "Callback carried no device token (params: ${params.keys}). " +
+                    "Falling back to the token stored before the browser opened."
+            )
+        }
+    }
+
+    /** Reads both `?a=b` and `#a=b` pairs; Clerk has used each at times. */
+    private fun parseQueryParams(url: String): Map<String, String> {
+        val out = mutableMapOf<String, String>()
+        val afterScheme = url.substringAfter("://", url)
+        listOf(
+            afterScheme.substringAfter('?', "").substringBefore('#'),
+            afterScheme.substringAfter('#', ""),
+        ).forEach { segment ->
+            segment.split('&').forEach { pair ->
+                if (pair.isBlank()) return@forEach
+                val key = pair.substringBefore('=')
+                val raw = pair.substringAfter('=', "")
+                if (key.isNotBlank()) {
+                    out[key] = runCatching {
+                        java.net.URLDecoder.decode(raw, "UTF-8")
+                    }.getOrDefault(raw)
+                }
+            }
+        }
+        return out
     }
 
     private suspend fun fetchClient(): ClerkClientData? {
@@ -443,6 +526,7 @@ class ClerkAuthManager(
     data class ClerkVerification(
         val status: String? = null,
         val strategy: String? = null,
+        val error: ClerkErrorItem? = null,
         @SerialName("external_verification_redirect_url")
         val externalVerificationRedirectUrl: String? = null,
     )

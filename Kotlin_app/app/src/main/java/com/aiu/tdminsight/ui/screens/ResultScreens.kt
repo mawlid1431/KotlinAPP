@@ -135,6 +135,7 @@ fun CalculatingScreen(nav: NavController, vm: CaseViewModel = viewModel()) {
 fun ResultsScreen(nav: NavController, vm: CaseViewModel = viewModel()) {
     val s by vm.uiState.collectAsState()
     val r = s.result
+    val context = androidx.compose.ui.platform.LocalContext.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -154,7 +155,10 @@ fun ResultsScreen(nav: NavController, vm: CaseViewModel = viewModel()) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { }) {
+                    IconButton(
+                        onClick = { (r as? CalculationResult.Success)?.let { shareCase(context, s, it) } },
+                        enabled = r is CalculationResult.Success,
+                    ) {
                         Icon(Icons.Filled.IosShare, contentDescription = "Share")
                     }
                 },
@@ -738,4 +742,53 @@ private fun ExplanationPhase(n: Int, title: String, body: String) {
                 modifier = Modifier.padding(top = 8.dp))
         }
     }
+}
+
+/**
+ * Builds a plain-text summary of the case currently on screen and hands it to
+ * Android's share sheet. The text is generated from the passed-in state, so it
+ * always describes this case and never a previously viewed one.
+ */
+private fun shareCase(
+    context: android.content.Context,
+    state: com.aiu.tdminsight.viewmodel.CaseUiState,
+    result: CalculationResult.Success,
+) {
+    val pk = result.intermediate
+    val p  = state.patient
+    val d  = state.dosing
+    val label = p.caseId.ifBlank { "Untitled case" }
+
+    val body = buildString {
+        appendLine("TDM Insight - $label")
+        appendLine("Workflow: ${result.workflow.name}")
+        appendLine()
+        appendLine("PATIENT")
+        appendLine("  Weight: ${p.weightKg} kg")
+        appendLine("  Age: ${p.ageLYears} years")
+        appendLine("  Sex: ${if (p.isMale) "Male" else "Female"}")
+        appendLine("  Serum creatinine: ${p.scrUmolL} umol/L")
+        appendLine()
+        appendLine("REGIMEN")
+        appendLine("  Dose: ${d.doseMg} mg every ${d.intervalHours} h")
+        appendLine("  Infusion duration: ${d.infusionDurationHours} h")
+        appendLine()
+        appendLine("RESULTS")
+        appendLine("  AUC24: ${"%.1f".format(pk.auc24)} mg.h/L")
+        appendLine("  Recommended dose: ${"%.0f".format(pk.recommendedDoseMg)} mg")
+        appendLine("  Ke: ${"%.4f".format(pk.kePerHour)} /h")
+        appendLine("  Half-life: ${"%.1f".format(pk.halfLifeHours)} h")
+        appendLine("  Vd: ${"%.1f".format(pk.vdL)} L (${"%.2f".format(pk.vdLPerKg)} L/kg)")
+        appendLine("  Clearance: ${"%.2f".format(pk.clearanceLPerHour)} L/h")
+        appendLine()
+        appendLine("TDM Insight is an academic prototype (CDE2313, AIU).")
+        append("This case is fictional. Never use for real prescribing decisions.")
+    }
+
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_SUBJECT, "TDM Insight - $label")
+        putExtra(android.content.Intent.EXTRA_TEXT, body)
+    }
+    context.startActivity(android.content.Intent.createChooser(send, "Share case"))
 }

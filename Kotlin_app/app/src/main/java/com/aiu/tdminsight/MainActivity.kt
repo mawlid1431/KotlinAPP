@@ -105,9 +105,12 @@ class MainActivity : ComponentActivity() {
                     // Browser came back via the deep link -> finish the sign-in.
                     val callback by oauthCallback.collectAsState()
                     LaunchedEffect(callback) {
-                        if (callback != null) {
+                        val uri = callback
+                        if (uri != null) {
                             oauthCallback.value = null
-                            authVm.completeGoogleSignIn()
+                            // Hand the WHOLE deep link to Clerk: its query string
+                            // carries the rotated device token for this session.
+                            authVm.completeGoogleSignIn(uri.toString())
                         }
                     }
 

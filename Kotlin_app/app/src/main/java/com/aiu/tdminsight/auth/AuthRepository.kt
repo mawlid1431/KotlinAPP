@@ -94,8 +94,8 @@ class AuthRepository(
     /**
      * Step 2 of Google sign-in — called once the browser redirects back into the app.
      */
-    suspend fun completeGoogleOAuth(): AuthState =
-        toAuthState(clerk.completeGoogleOAuth(), isNewUserDefault = false)
+    suspend fun completeGoogleOAuth(callbackUrl: String? = null): AuthState =
+        toAuthState(clerk.completeGoogleOAuth(callbackUrl), isNewUserDefault = false)
 
     private fun toAuthState(result: ClerkResult, isNewUserDefault: Boolean): AuthState =
         when (result) {

@@ -43,7 +43,14 @@ class SupabaseRepository(
         result: CalculationResult.Success,
     ): Boolean {
         return try {
-            val userId = authRepo.savedSession()?.userId ?: "anonymous"
+            // Refuse rather than writing under "anonymous". loadRecentCases()
+            // filters by the signed-in user's id, so an anonymous row could
+            // never be read back - it would be silently orphaned data.
+            val userId = authRepo.savedSession()?.userId
+            if (userId == null) {
+                Log.w(TAG, "saveCase skipped: no signed-in user")
+                return false
+            }
             val pk     = patient
             val ds     = dosing
             val r      = result.intermediate

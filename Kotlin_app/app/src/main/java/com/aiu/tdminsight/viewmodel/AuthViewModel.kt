@@ -154,11 +154,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _pendingOAuthUrl.value = null
     }
 
-    /** Step 2 — called when the browser redirects back into the app. */
-    fun completeGoogleSignIn() {
+    /**
+     * Step 2 - called when the browser redirects back into the app.
+     *
+     * [callbackUrl] is the full deep link. It matters: Clerk rotates the device
+     * token across the browser trip and returns the new one on this URL.
+     */
+    fun completeGoogleSignIn(callbackUrl: String? = null) {
         _authState.value = AuthState.Loading
         viewModelScope.launch {
-            val result = authRepo.completeGoogleOAuth()
+            val result = authRepo.completeGoogleOAuth(callbackUrl)
             _authState.value = result
             if (result is AuthState.Authenticated) {
                 _freshLogin.value = true
