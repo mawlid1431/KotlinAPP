@@ -24,6 +24,7 @@ import { Reveal } from './Reveal';
 import { InteractivePhone, PhoneMockup } from './devices';
 import {
   CheckoutScreen,
+  HistoryScreen,
   HomeScreen,
   LoginScreen,
   RewardsScreen,
@@ -310,6 +311,7 @@ export function LandingPage() {
                   { key: 'input', label: 'Patient inputs', node: <CheckoutScreen /> },
                   { key: 'calc', label: 'Calculating', node: <TrackingScreen /> },
                   { key: 'results', label: 'Results', node: <RewardsScreen /> },
+                  { key: 'history', label: 'History', node: <HistoryScreen /> },
                   { key: 'explain', label: 'Explanation', node: <SuccessScreen /> },
                 ]}
               />
@@ -453,7 +455,7 @@ export function LandingPage() {
 
             <Reveal kind="zoom" delay={120} className="lp-cluster">
               <PhoneMockup width={286} float>
-                <TrackingScreen />
+                <HistoryScreen />
               </PhoneMockup>
               <div className="lp-cluster__phone">
                 <PhoneMockup width={190} float>

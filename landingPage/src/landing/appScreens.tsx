@@ -349,3 +349,68 @@ export function SuccessScreen() {
   );
 }
 
+
+/** History screen — saved calculations, mirrors the app's History tab. */
+export function HistoryScreen() {
+  const chips = [
+    { l: 'ke', v: '0.091', u: 'h⁻¹' },
+    { l: 't½', v: '7.6', u: 'h' },
+    { l: 'Vd', v: '38', u: 'L' },
+    { l: 'CL', v: '3.49', u: 'L/h' },
+  ];
+  return (
+    <div className="lp-app">
+      <StatusBar />
+      <div className="lp-app__body">
+        <p className="lp-app__greet-name">Calculation History</p>
+        <p className="lp-app__greet-label" style={{ marginTop: 2 }}>Your saved calculations</p>
+
+        <div style={{ border: '1px solid #E2E2E2', borderRadius: 12, padding: 11, marginTop: 8, background: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#0F0F0F' }}>Vancomycin case</p>
+              <p style={{ fontSize: 7, color: '#6B6B6B', marginTop: 2 }}>2026-09-05</p>
+            </div>
+            <span style={{ background: '#E3F0FF', borderRadius: 50, padding: '3px 8px', fontSize: 6.5, fontWeight: 600, color: '#1464A8', whiteSpace: 'nowrap' }}>
+              Pre + Post
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 9 }}>
+            <div>
+              <p style={{ fontSize: 6.5, color: '#6B6B6B' }}>AUC₂₄</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#1E7A46', fontFamily: 'monospace', lineHeight: 1.1 }}>573 mg·h/L</p>
+              <p style={{ fontSize: 6.5, color: '#1E7A46', marginTop: 1 }}>In target</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: 6.5, color: '#6B6B6B' }}>Rec. dose</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#0F0F0F', fontFamily: 'monospace', lineHeight: 1.1 }}>873 mg</p>
+              <p style={{ fontSize: 6.5, color: '#6B6B6B', marginTop: 1 }}>every 12 h</p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 4, marginTop: 9 }}>
+            {chips.map(({ l, v, u }) => (
+              <div key={l} style={{ flex: 1, background: '#F4F4F4', borderRadius: 8, padding: '5px 3px', textAlign: 'center' }}>
+                <p style={{ fontSize: 6, color: '#6B6B6B' }}>{l}</p>
+                <p style={{ fontSize: 8, fontWeight: 700, color: '#0F0F0F', fontFamily: 'monospace', marginTop: 1 }}>{v}</p>
+                <p style={{ fontSize: 5.5, color: '#6B6B6B' }}>{u}</p>
+              </div>
+            ))}
+          </div>
+
+          <svg viewBox="0 0 200 54" style={{ width: '100%', height: 42, marginTop: 8, display: 'block' }} aria-hidden>
+            <path d="M4 50 L34 8 L196 34" fill="none" stroke="#1464A8" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+            <path d="M4 50 L34 8 L196 34 L196 52 L4 52 Z" fill="#1464A8" opacity="0.07" />
+            <line x1="34" y1="8" x2="34" y2="52" stroke="#C9C9C9" strokeWidth="0.8" strokeDasharray="2 2" />
+          </svg>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, opacity: 0.75 }}>
+          <History size={9} strokeWidth={2.2} color="#6B6B6B" />
+          <p style={{ fontSize: 7, color: '#6B6B6B' }}>Saved privately to your account</p>
+        </div>
+      </div>
+    </div>
+  );
+}
