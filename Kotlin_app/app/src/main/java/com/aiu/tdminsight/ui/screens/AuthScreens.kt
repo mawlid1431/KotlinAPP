@@ -573,3 +573,159 @@ fun SignUpScreen(
         }
     }
 }
+
+/**
+ * Code screen shown when Clerk is configured to verify the email address at
+ * sign-up. The Clerk user is only created once this code is confirmed.
+ */
+@Composable
+fun VerifyEmailScreen(
+    authState: AuthState,
+    onVerify: (code: String) -> Unit,
+    onResend: () -> Unit,
+    onBack: () -> Unit,
+) {
+    var code by remember { mutableStateOf("") }
+    val pending   = authState as? AuthState.AwaitingEmailCode
+    val isLoading = authState is AuthState.Loading || pending?.busy == true
+    val notice    = pending?.message
+    val email     = pending?.email.orEmpty()
+
+    AuthBackground {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Spacer(Modifier.height(48.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.12f)) {
+                    Icon(
+                        Icons.Outlined.MarkEmailRead, contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(10.dp).size(22.dp),
+                    )
+                }
+                Text(
+                    "TDM Insight",
+                    style = TdmNumericMono.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 1.2.sp,
+                    ),
+                    color = Color.White.copy(alpha = 0.7f),
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    "Check your email",
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White,
+                )
+                Text(
+                    if (email.isBlank()) "Enter the 6-digit code we sent you."
+                    else "Enter the 6-digit code sent to $email.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.65f),
+                )
+
+                AuthField(
+                    label = "Verification code",
+                    value = code,
+                    onValueChange = { input -> code = input.filter { it.isDigit() }.take(6) },
+                    keyboardType = KeyboardType.Number,
+                )
+
+                if (notice != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFB00020).copy(alpha = 0.18f),
+                    ) {
+                        Text(
+                            notice,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFF8A80),
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White)
+                        .clickable(enabled = !isLoading && code.length == 6) { onVerify(code) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = AuthInk,
+                            strokeWidth = 2.5.dp,
+                        )
+                    } else {
+                        Text(
+                            "Verify and continue",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = AuthInk,
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color.White.copy(alpha = 0.08f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clickable(enabled = !isLoading) { onResend() },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "Send the code again",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.85f),
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clickable(enabled = !isLoading) { onBack() },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "Use a different email",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.6f),
+                        )
+                    }
+                }
+            }
+
+            Text(
+                "TDM Insight · CDE2313 · AIU",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.35f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            )
+        }
+    }
+}

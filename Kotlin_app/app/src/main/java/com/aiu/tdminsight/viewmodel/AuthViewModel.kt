@@ -97,6 +97,46 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Confirms the 6-digit code Clerk emailed during sign-up. Only on success
+     * does the Clerk user actually exist, so the Supabase sync happens here too.
+     */
+    fun verifyEmailCode(code: String) {
+        val pending = _authState.value as? AuthState.AwaitingEmailCode ?: return
+        _authState.value = pending.copy(message = null, busy = true)
+        viewModelScope.launch {
+            val result = authRepo.verifyEmailCode(code, pending.email)
+            _authState.value = when (result) {
+                // Keep the user on the code screen when the code was wrong.
+                is AuthState.Error -> pending.copy(message = result.message, busy = false)
+                else -> result
+            }
+            if (result is AuthState.Authenticated) {
+                _freshLogin.value = true
+                syncUserToSupabase(result)
+            }
+        }
+    }
+
+    /** Asks Clerk to email the sign-up code again. */
+    fun resendEmailCode() {
+        val pending = _authState.value as? AuthState.AwaitingEmailCode ?: return
+        viewModelScope.launch {
+            val error = authRepo.resendEmailCode()
+            _authState.value = AuthState.AwaitingEmailCode(
+                pending.email,
+                error ?: "A new code is on its way to ${pending.email}.",
+            )
+        }
+    }
+
+    /** Abandons a pending sign-up and returns to the sign-in screen. */
+    fun cancelEmailVerification() {
+        if (_authState.value is AuthState.AwaitingEmailCode) {
+            _authState.value = AuthState.Unauthenticated
+        }
+    }
+
     // -- Clerk identity -> Supabase ----------------------------------------
 
     /**

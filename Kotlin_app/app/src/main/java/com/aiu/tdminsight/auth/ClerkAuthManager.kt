@@ -71,6 +71,21 @@ class ClerkAuthManager(
         }
     }
 
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+    /**
+     * Clerk answers a rejected credential with HTTP 4xx and a JSON `errors`
+     * array. Ktor does not raise on 4xx, so the body has to be inspected here
+     * for the human-readable reason to reach the UI.
+     */
+    private fun clerkErrorFrom(raw: String): String? = try {
+        json.decodeFromString<ClerkErrorResponse>(raw).errors?.firstOrNull()
+            ?.let { it.longMessage ?: it.message }
+            ?.takeIf { it.isNotBlank() }
+    } catch (_: Exception) {
+        null
+    }
+
     val isConfigured: Boolean get() = publishableKey.isNotBlank() && frontendApiUrl.isNotBlank()
 
     // ── Device (client) token — persisted so the OAuth round-trip resolves ────
@@ -84,6 +99,16 @@ class ClerkAuthManager(
             deviceTokenCache = value
             prefs?.edit { putString(KEY_DEVICE_TOKEN, value) }
         }
+
+    /**
+     * Nonce handed back on the OAuth redirect. Clerk rotates the device token
+     * across the browser round-trip and will only reveal the new one when this
+     * nonce is presented to GET /v1/client, so the session is invisible without it.
+     */
+    private var pendingOAuthNonce: String? = null
+
+    /** Sign-up attempt awaiting an emailed code, set by [signUp]. */
+    private var pendingSignUpId: String? = null
 
     /** Called on sign-out so the next sign-in starts from a clean Clerk client. */
     fun clearDeviceToken() {
@@ -125,7 +150,11 @@ class ClerkAuthManager(
             ) { clerkHeaders() }
             captureDeviceToken(httpResponse)
 
-            val response: ClerkClientResponse = httpResponse.body()
+            val raw = httpResponse.bodyAsText()
+            if (!httpResponse.status.isSuccess()) {
+                return ClerkResult.Failure(clerkErrorFrom(raw) ?: "Invalid email or password.")
+            }
+            val response: ClerkClientResponse = json.decodeFromString(raw)
             val signIn = response.response ?: return ClerkResult.Failure("Unexpected Clerk response.")
             when (signIn.status) {
                 "complete" -> {
@@ -154,7 +183,13 @@ class ClerkAuthManager(
             ) { clerkHeaders() }
             captureDeviceToken(httpResponse)
 
-            val response: ClerkClientResponse = httpResponse.body()
+            val raw = httpResponse.bodyAsText()
+            if (!httpResponse.status.isSuccess()) {
+                return ClerkResult.Failure(
+                    clerkErrorFrom(raw) ?: "Sign-up failed. Check your email and password requirements."
+                )
+            }
+            val response: ClerkClientResponse = json.decodeFromString(raw)
             val signUp = response.response
             when {
                 signUp == null -> ClerkResult.Failure("Unexpected Clerk response.")
@@ -163,14 +198,92 @@ class ClerkAuthManager(
                     toSuccess(session, fallbackEmail = email, isNewUser = true)
                         ?: ClerkResult.Failure("Account created, but Clerk returned no session.")
                 }
-                signUp.status == "missing_requirements" ->
-                    ClerkResult.Failure("Email verification required. Check your inbox.")
+                signUp.status == "missing_requirements" -> {
+                    // Clerk is configured with "verify at sign-up", so the account
+                    // only exists once an emailed code is confirmed. Ask Clerk to
+                    // send that code and hand the UI over to the code screen.
+                    val id = signUp.id
+                    if (id != null && signUp.unverifiedFields?.contains("email_address") != false) {
+                        pendingSignUpId = id
+                        prepareEmailCode(id) ?: ClerkResult.NeedsEmailCode(email)
+                    } else {
+                        ClerkResult.Failure("Sign-up incomplete (status: ).")
+                    }
+                }
                 else -> ClerkResult.Failure("Sign-up incomplete (status: ${signUp.status}).")
             }
         } catch (e: io.ktor.client.plugins.ClientRequestException) {
             ClerkResult.Failure(errorMessage(e, "Sign-up failed. Check your email and password requirements."))
         } catch (e: Exception) {
             ClerkResult.Failure("Sign-up failed: ${e.message}")
+        }
+    }
+
+    // ── Email code verification (Clerk "verify at sign-up") ────────────────
+
+    /**
+     * Asks Clerk to email a 6-digit code for the pending sign-up.
+     *
+     * Returns null on success (the caller then shows the code screen) or a
+     * [ClerkResult.Failure] describing why the code could not be sent.
+     */
+    private suspend fun prepareEmailCode(signUpId: String): ClerkResult? = try {
+        val httpResponse = http.submitForm(
+            url = endpoint("/v1/client/sign_ups/$signUpId/prepare_verification"),
+            formParameters = parameters { append("strategy", "email_code") }
+        ) { clerkHeaders() }
+        captureDeviceToken(httpResponse)
+        val raw = httpResponse.bodyAsText()
+        if (httpResponse.status.isSuccess()) null
+        else ClerkResult.Failure(
+            clerkErrorFrom(raw) ?: "Could not send the verification code. Try again."
+        )
+    } catch (e: Exception) {
+        ClerkResult.Failure("Could not send the verification code: ${e.message}")
+    }
+
+    /** Re-sends the code for the sign-up already in flight. */
+    suspend fun resendEmailCode(): ClerkResult? {
+        val id = pendingSignUpId ?: return ClerkResult.Failure("No sign-up in progress.")
+        return prepareEmailCode(id)
+    }
+
+    /**
+     * Confirms the emailed code and finishes the sign-up. Clerk creates the
+     * user and issues the session only at this point.
+     */
+    suspend fun verifyEmailCode(code: String, email: String): ClerkResult {
+        if (!isConfigured) return notConfigured()
+        val id = pendingSignUpId
+            ?: return ClerkResult.Failure("No sign-up in progress. Start again.")
+        return try {
+            val httpResponse = http.submitForm(
+                url = endpoint("/v1/client/sign_ups/$id/attempt_verification"),
+                formParameters = parameters {
+                    append("strategy", "email_code")
+                    append("code", code.trim())
+                }
+            ) { clerkHeaders() }
+            captureDeviceToken(httpResponse)
+
+            val raw = httpResponse.bodyAsText()
+            if (!httpResponse.status.isSuccess()) {
+                return ClerkResult.Failure(
+                    clerkErrorFrom(raw) ?: "That code is not correct. Check your email and try again."
+                )
+            }
+            val response: ClerkClientResponse = json.decodeFromString(raw)
+            val signUp = response.response
+            if (signUp?.status == "complete") {
+                pendingSignUpId = null
+                val session = response.client?.sessions?.firstOrNull()
+                toSuccess(session, fallbackEmail = email, isNewUser = true)
+                    ?: ClerkResult.Failure("Verified, but Clerk returned no session.")
+            } else {
+                ClerkResult.Failure("Verification incomplete (status: ${signUp?.status}).")
+            }
+        } catch (e: Exception) {
+            ClerkResult.Failure("Verification failed: ${e.message}")
         }
     }
 
@@ -237,7 +350,10 @@ class ClerkAuthManager(
             // never completed the OAuth - so it legitimately reports no session.
             adoptDeviceTokenFrom(callbackUrl)
 
-            val client = fetchClient()
+            // The nonce is single-use: spend it on this read and forget it.
+            val nonce = pendingOAuthNonce
+            pendingOAuthNonce = null
+            val client = fetchClient(nonce)
                 ?: return ClerkResult.Failure("Could not read the Clerk session after Google sign-in.")
 
             client.sessions?.firstOrNull()?.let { session ->
@@ -370,6 +486,7 @@ class ClerkAuthManager(
         if (callbackUrl.isNullOrBlank()) return
         android.util.Log.d(TAG, "OAuth callback: $callbackUrl")
         val params = parseQueryParams(callbackUrl)
+        pendingOAuthNonce = params["rotating_token_nonce"]?.takeIf { it.isNotBlank() }
         val rotated = TOKEN_PARAMS.firstNotNullOfOrNull { name ->
             params[name]?.takeIf { it.isNotBlank() }
         }
@@ -380,7 +497,9 @@ class ClerkAuthManager(
             android.util.Log.w(
                 TAG,
                 "Callback carried no device token (params: ${params.keys}). " +
-                    "Falling back to the token stored before the browser opened."
+                    if (pendingOAuthNonce != null)
+                        "Exchanging the rotating_token_nonce for the rotated one."
+                    else "Falling back to the token stored before the browser opened."
             )
         }
     }
@@ -407,8 +526,17 @@ class ClerkAuthManager(
         return out
     }
 
-    private suspend fun fetchClient(): ClerkClientData? {
-        val httpResponse = http.get(endpoint("/v1/client")) { clerkHeaders() }
+    /**
+     * Reads the Clerk client for this device.
+     *
+     * After a Google round-trip the caller must pass the [nonce] from the
+     * redirect: Clerk only hands back the rotated device token - and with it
+     * the new session - when the nonce accompanies the request.
+     */
+    private suspend fun fetchClient(nonce: String? = null): ClerkClientData? {
+        val url = endpoint("/v1/client") +
+            (nonce?.let { "&rotating_token_nonce=$it" } ?: "")
+        val httpResponse = http.get(url) { clerkHeaders() }
         captureDeviceToken(httpResponse)
         return httpResponse.body<ClerkClientEnvelope>().response
     }
@@ -517,6 +645,7 @@ class ClerkAuthManager(
     data class ClerkSignResponse(
         val id: String? = null,
         val status: String? = null,
+        @SerialName("unverified_fields") val unverifiedFields: List<String>? = null,
         @SerialName("created_session_id") val createdSessionId: String? = null,
         @SerialName("first_factor_verification") val firstFactorVerification: ClerkVerification? = null,
         val verification: ClerkVerification? = null,
@@ -592,6 +721,9 @@ sealed class ClerkResult {
         val lastName: String? = null,
         val imageUrl: String? = null,
     ) : ClerkResult()
+
+    /** Clerk emailed a code; the sign-up finishes once it is confirmed. */
+    data class NeedsEmailCode(val email: String) : ClerkResult()
 
     data class Failure(val message: String) : ClerkResult()
 }

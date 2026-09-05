@@ -122,9 +122,9 @@ const INSTITUTIONS = [
 const MARQUEE_WORDS = ['Calculate', 'Monitor', 'Dose', 'Vancomycin', 'AUC₂₄', 'PK Parameters', 'Sawchuk–Zaske'];
 
 const TEAM = [
-  { name: 'Mowlid Haibe',       role: 'Student Developer', photo: '/team/mowlid.jpg' },
+  { name: 'Mowlid Haibe', role: 'Student Developer', photo: '/team/mowlid.jpg' },
   { name: 'Abdinaazir Mustafe', role: 'Student Developer', photo: '/team/abdinaazir.jpg' },
-  { name: 'Elham Ahmedngus',    role: 'Student Developer', photo: '/team/elham.jpg' },
+  { name: 'Elham Ahmedngus', role: 'Student Developer', photo: '/team/elham.jpg' },
 ];
 
 /* ── Silhouette avatar ──────────────────────────────────────────────── */
@@ -151,7 +151,7 @@ function DownloadBadges() {
           <span className="lp-store__name">Get APK</span>
         </span>
       </a>
-      <a href="#download" className="lp-store">
+      <a href="https://github.com/mawlid1431/KotlinAPP/" target="_blank" rel="noopener noreferrer" className="lp-store">
         <Github size={18} strokeWidth={2} />
         <span>
           <span className="lp-store__kicker">Source code</span>
@@ -731,7 +731,7 @@ export function LandingPage() {
                     <Play size={17} strokeWidth={2} fill="currentColor" />
                     Download APK
                   </a>
-                  <a href="#download" className="lp-btn lp-btn--light">
+                  <a href="https://github.com/mawlid1431/KotlinAPP/" target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn--light">
                     <Github size={17} strokeWidth={2} />
                     View on GitHub
                   </a>

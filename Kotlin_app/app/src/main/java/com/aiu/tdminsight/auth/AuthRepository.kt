@@ -97,6 +97,14 @@ class AuthRepository(
     suspend fun completeGoogleOAuth(callbackUrl: String? = null): AuthState =
         toAuthState(clerk.completeGoogleOAuth(callbackUrl), isNewUserDefault = false)
 
+    /** Confirms the emailed code and finishes a pending sign-up. */
+    suspend fun verifyEmailCode(code: String, email: String): AuthState =
+        toAuthState(clerk.verifyEmailCode(code, email.trim()), isNewUserDefault = true)
+
+    /** Asks Clerk to email the code again. Returns null when it was sent. */
+    suspend fun resendEmailCode(): String? =
+        (clerk.resendEmailCode() as? ClerkResult.Failure)?.message
+
     private fun toAuthState(result: ClerkResult, isNewUserDefault: Boolean): AuthState =
         when (result) {
             is ClerkResult.Success -> {
@@ -119,6 +127,7 @@ class AuthRepository(
                     imageUrl     = result.imageUrl,
                 )
             }
+            is ClerkResult.NeedsEmailCode -> AuthState.AwaitingEmailCode(result.email)
             is ClerkResult.Failure -> AuthState.Error(result.message)
         }
 

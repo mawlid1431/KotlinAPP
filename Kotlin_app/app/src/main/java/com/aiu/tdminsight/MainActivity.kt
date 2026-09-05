@@ -36,6 +36,7 @@ import com.aiu.tdminsight.ui.rememberUserPrefs
 import com.aiu.tdminsight.ui.navigation.TdmNavGraph
 import com.aiu.tdminsight.ui.screens.LoginScreen
 import com.aiu.tdminsight.ui.screens.SignUpScreen
+import com.aiu.tdminsight.ui.screens.VerifyEmailScreen
 import com.aiu.tdminsight.ui.screens.SplashScreen
 import com.aiu.tdminsight.ui.screens.WelcomeScreen
 import com.aiu.tdminsight.ui.theme.AuthBackgroundGradient
@@ -140,6 +141,15 @@ class MainActivity : ComponentActivity() {
                         }
                         // 5. Already authenticated (session restore or after welcome)
                         authState is AuthState.Authenticated -> TdmNavGraph(authVm = authVm)
+                        // 6. Clerk emailed a sign-up code - confirm it before the
+                        //    account exists. Sits above the sign-up branch so the
+                        //    code screen survives recomposition.
+                        authState is AuthState.AwaitingEmailCode -> VerifyEmailScreen(
+                            authState = authState,
+                            onVerify  = { code -> authVm.verifyEmailCode(code) },
+                            onResend  = { authVm.resendEmailCode() },
+                            onBack    = { authVm.cancelEmailVerification(); showSignUp = true },
+                        )
                         // 6. Sign-up screen
                         showSignUp -> SignUpScreen(
                             authState = authState,

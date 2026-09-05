@@ -42,5 +42,12 @@ sealed class AuthState {
             }
     }
 
+    /** Clerk emailed a 6-digit code; sign-up finishes once it is entered. */
+    data class AwaitingEmailCode(
+        val email: String,
+        val message: String? = null,
+        val busy: Boolean = false,
+    ) : AuthState()
+
     data class Error(val message: String) : AuthState()
 }
