@@ -65,20 +65,6 @@ fun WarningBanner(title: String, body: String, modifier: Modifier = Modifier) {
 
 /** In-target success — green successContainer. */
 @Composable
-fun SuccessBanner(title: String, body: String, modifier: Modifier = Modifier) {
-    val tdm = MaterialTheme.tdm
-    Banner(
-        icon        = Icons.Outlined.CheckCircle,
-        iconTint    = tdm.success,
-        title       = title,
-        body        = body,
-        containerColor = tdm.successContainer,
-        contentColor   = tdm.onSuccessContainer,
-        modifier    = modifier,
-    )
-}
-
-@Composable
 private fun Banner(
     icon: ImageVector,
     iconTint: Color,
@@ -185,20 +171,3 @@ fun PrimaryPillButton(
 }
 
 /** Outlined secondary CTA. */
-@Composable
-fun SecondaryOutlinedButton(
-    text: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(50),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(52.dp),
-    ) {
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}

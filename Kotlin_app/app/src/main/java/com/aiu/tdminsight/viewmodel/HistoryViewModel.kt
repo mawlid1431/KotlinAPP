@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aiu.tdminsight.TdmApplication
-import com.aiu.tdminsight.ui.screens.HistoryEntry
+import com.aiu.tdminsight.data.model.HistoryEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

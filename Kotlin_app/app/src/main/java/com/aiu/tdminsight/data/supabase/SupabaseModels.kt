@@ -51,7 +51,7 @@ data class CaseDto(
 
 // ── Conversion helpers ────────────────────────────────────────────────────────
 
-internal fun CaseDto.toHistoryEntry() = com.aiu.tdminsight.ui.screens.HistoryEntry(
+internal fun CaseDto.toHistoryEntry() = HistoryEntry(
     caseId    = caseLabel,
     date      = createdAt?.take(10) ?: "—",
     workflow  = when (workflow) {
@@ -68,4 +68,55 @@ internal fun CaseDto.toHistoryEntry() = com.aiu.tdminsight.ui.screens.HistoryEnt
     t12       = halfLifeHours ?: 0.0,
     vdL       = vdL ?: 0.0,
     clLH      = clearanceLPerHour ?: 0.0,
+)
+
+
+// ── user_profiles ─────────────────────────────────────────────────────────────
+
+/**
+ * Full row of `user_profiles`, used when READING a profile back.
+ * Every field is optional except the Clerk user ID, because a row may have
+ * been created by the ensure_user_profile() trigger before the app ever
+ * synced identity fields into it.
+ */
+@Serializable
+data class UserProfileDto(
+    @SerialName("user_id")      val userId: String,
+    val email: String? = null,
+    @SerialName("first_name")   val firstName: String? = null,
+    @SerialName("last_name")    val lastName: String? = null,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("avatar_url")   val avatarUrl: String? = null,
+    val institution: String? = null,
+    val department: String? = null,
+    val role: String? = null,
+)
+
+/**
+ * WRITE payload for the Clerk -> Supabase sync.
+ *
+ * Deliberately narrower than [UserProfileDto]: it carries only the columns
+ * Clerk owns. On an upsert conflict PostgREST updates just these columns, so
+ * institution / department / role survive every subsequent login untouched.
+ */
+@Serializable
+data class UserProfileSyncDto(
+    @SerialName("user_id")      val userId: String,
+    val email: String,
+    @SerialName("first_name")   val firstName: String? = null,
+    @SerialName("last_name")    val lastName: String? = null,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("avatar_url")   val avatarUrl: String? = null,
+)
+
+internal fun UserProfileDto.toUserProfile() = UserProfile(
+    userId      = userId,
+    email       = email.orEmpty(),
+    firstName   = firstName,
+    lastName    = lastName,
+    displayName = displayName,
+    avatarUrl   = avatarUrl,
+    institution = institution,
+    department  = department,
+    role        = role,
 )

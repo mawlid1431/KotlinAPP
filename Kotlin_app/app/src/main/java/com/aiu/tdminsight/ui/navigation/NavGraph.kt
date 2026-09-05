@@ -7,12 +7,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.aiu.tdminsight.auth.AuthState
 import com.aiu.tdminsight.ui.screens.*
+import com.aiu.tdminsight.viewmodel.AuthViewModel
 import com.aiu.tdminsight.viewmodel.CaseViewModel
 import com.aiu.tdminsight.viewmodel.HistoryViewModel
 
 object Routes {
-    const val SPLASH            = "splash"
     const val HOME              = "home"
     const val NEW_CASE          = "new_case"
     const val MEDICATION_SELECT = "medication_select"
@@ -25,16 +26,28 @@ object Routes {
     const val ERROR             = "engine_error"
     const val HISTORY           = "history"
     const val SETTINGS          = "settings"
+    const val PROFILE           = "profile"
     const val DISCLAIMER        = "disclaimer"
 }
 
+/**
+ * @param authVm the Activity-scoped AuthViewModel. It is passed in rather than
+ * obtained with `viewModel()` because inside a NavHost that call resolves to the
+ * NavBackStackEntry and would create a second, unobserved instance — which is
+ * what previously made "Sign out" appear to do nothing.
+ */
 @Composable
-fun TdmNavGraph() {
+fun TdmNavGraph(authVm: AuthViewModel) {
     val navController = rememberNavController()
-    // Shared across all wizard screens so user edits survive navigation.
-    val vm: CaseViewModel = viewModel()
-    // Shared across Home and History so both show the same live data.
-    val historyVm: HistoryViewModel = viewModel()
+
+    // These two ViewModels are Activity-scoped (this call site sits outside the
+    // NavHost), so without a key they would OUTLIVE a sign-out and the next
+    // person to sign in would inherit the previous user's wizard state and case
+    // history. Keying them by Clerk user ID gives each account its own instance.
+    val userKey = (authVm.authState.value as? AuthState.Authenticated)?.userId ?: "anonymous"
+    val vm: CaseViewModel           = viewModel(key = "case-$userKey")
+    val historyVm: HistoryViewModel = viewModel(key = "history-$userKey")
+
     NavHost(
         navController = navController,
         startDestination = Routes.HOME,
@@ -56,7 +69,8 @@ fun TdmNavGraph() {
         composable(Routes.EXPLANATION) { ExplanationScreen(navController, vm = vm) }
         composable(Routes.ERROR)       { ErrorScreen(navController, vm = vm) }
         composable(Routes.HISTORY)     { HistoryScreen(navController, vm = historyVm) }
-        composable(Routes.SETTINGS)    { SettingsScreen(navController) }
+        composable(Routes.SETTINGS)    { SettingsScreen(navController, authVm = authVm) }
+        composable(Routes.PROFILE)     { ProfileScreen(navController, authVm = authVm) }
         composable(Routes.DISCLAIMER)  { DisclaimerScreen(navController) }
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ── Light palette — clean white + clinical blue (Uniwind-style clarity) ──────
@@ -118,3 +119,22 @@ val androidx.compose.material3.MaterialTheme.tdm: ExtendedColors
     @Composable
     @ReadOnlyComposable
     get() = LocalExtendedColors.current
+
+// ── Auth / onboarding palette ────────────────────────────────────────────────
+// The sign-in, sign-up and first-launch screens share one fixed dark treatment
+// that does not follow the light/dark theme. Defined once here so the shade is
+// identical on every one of those screens.
+
+/** Deep navy the auth screens sit on; also the text colour on white pills. */
+val AuthInk = Color(0xFF0A0E1A)
+internal val AuthInkMid = Color(0xFF101524)
+internal val AuthInkLow = Color(0xFF0F1117)
+
+/** Decorative background blobs. Alpha is chosen per screen. */
+internal val AuthBlobBlue   = Color(0xFF3B6CC0)
+internal val AuthBlobPurple = Color(0xFF7B3FC4)
+
+/** Vertical gradient behind every auth / onboarding screen. */
+val AuthBackgroundGradient = Brush.verticalGradient(
+    colors = listOf(AuthInk, AuthInkMid, AuthInkLow)
+)

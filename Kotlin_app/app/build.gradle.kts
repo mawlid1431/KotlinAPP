@@ -7,12 +7,20 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Read credentials from local.properties (already gitignored by Android Studio).
-// Add these keys there — do NOT commit real values.
+// Read credentials from local.properties.
 val localProps = Properties().also { props ->
     val f = rootProject.file("local.properties")
-    if (f.exists()) props.load(f.inputStream())
+    if (f.exists()) {
+        f.inputStream().use { props.load(it) }
+    }
 }
+
+val clerkKey = localProps.getProperty("CLERK_PUBLISHABLE_KEY").takeUnless { it.isNullOrBlank() }
+    ?: "pk_test_cmVhbC1hc3AtNjI1NS5jbGVyay5hY2NvdW50cy5kZXYk"
+val supabaseUrl = localProps.getProperty("SUPABASE_URL").takeUnless { it.isNullOrBlank() }
+    ?: "https://mhijnqqdichqsfplwfaa.supabase.co"
+val supabaseAnonKey = localProps.getProperty("SUPABASE_ANON_KEY").takeUnless { it.isNullOrBlank() }
+    ?: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oaWpucXFkaWNocXNmcGx3ZmFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNzE3MzIsImV4cCI6MjEwMzg0NzczMn0.1HhpMhdKfm_qEFi-dC2c_3b8wEsFmzjsDcyJP8fUEh4"
 
 android {
     namespace = "com.aiu.tdminsight"
@@ -26,14 +34,10 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Inject credentials into BuildConfig — values come from local.properties.
-        // Leave blank until you add real credentials.
-        buildConfigField("String", "CLERK_PUBLISHABLE_KEY",
-            "\"${localProps.getProperty("CLERK_PUBLISHABLE_KEY", "")}\"")
-        buildConfigField("String", "SUPABASE_URL",
-            "\"${localProps.getProperty("SUPABASE_URL", "")}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY",
-            "\"${localProps.getProperty("SUPABASE_ANON_KEY", "")}\"")
+        // Inject credentials into BuildConfig.
+        buildConfigField("String", "CLERK_PUBLISHABLE_KEY", "\"$clerkKey\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     buildTypes {
@@ -80,6 +84,9 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+
+    // ── Image loading (remote Clerk avatars) ───────────────────────────────
+    implementation(libs.coil.compose)
 
     // ── Kotlinx ────────────────────────────────────────────────────────────
     implementation(libs.kotlinx.serialization.json)

@@ -1,5 +1,7 @@
 package com.aiu.tdminsight
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,7 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.aiu.tdminsight.auth.AuthState
 import com.aiu.tdminsight.ui.LocalUserPrefs
 import com.aiu.tdminsight.ui.ThemePref
@@ -34,14 +38,40 @@ import com.aiu.tdminsight.ui.screens.LoginScreen
 import com.aiu.tdminsight.ui.screens.SignUpScreen
 import com.aiu.tdminsight.ui.screens.SplashScreen
 import com.aiu.tdminsight.ui.screens.WelcomeScreen
+import com.aiu.tdminsight.ui.theme.AuthBackgroundGradient
+import com.aiu.tdminsight.ui.theme.AuthBlobBlue
+import com.aiu.tdminsight.ui.theme.AuthBlobPurple
+import com.aiu.tdminsight.ui.theme.AuthInk
 import com.aiu.tdminsight.ui.theme.TDMInsightTheme
 import com.aiu.tdminsight.ui.theme.TdmNumericMono
 import com.aiu.tdminsight.ui.theme.tdm
 import com.aiu.tdminsight.viewmodel.AuthViewModel
 
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Set when Clerk's OAuth redirect (tdminsight://oauth-callback) brings the
+     * browser back into the app. Compose observes this and finishes the sign-in.
+     */
+    private val oauthCallback = MutableStateFlow<Uri?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        captureOAuthRedirect(intent)
+    }
+
+    private fun captureOAuthRedirect(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "tdminsight" && data.host == "oauth-callback") {
+            oauthCallback.value = data
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Covers the case where the app was killed while the browser was open.
+        captureOAuthRedirect(intent)
         enableEdgeToEdge()
         setContent {
             val prefs = rememberUserPrefs()
@@ -61,6 +91,26 @@ class MainActivity : ComponentActivity() {
                     var showSignUp by remember { mutableStateOf(false) }
                     var splashDone by remember { mutableStateOf(false) }
 
+                    // Clerk handed us a Google consent URL -> open the browser.
+                    val context = LocalContext.current
+                    val oauthUrl by authVm.pendingOAuthUrl.collectAsState()
+                    LaunchedEffect(oauthUrl) {
+                        val url = oauthUrl ?: return@LaunchedEffect
+                        authVm.consumeOAuthUrl()
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        }
+                    }
+
+                    // Browser came back via the deep link -> finish the sign-in.
+                    val callback by oauthCallback.collectAsState()
+                    LaunchedEffect(callback) {
+                        if (callback != null) {
+                            oauthCallback.value = null
+                            authVm.completeGoogleSignIn()
+                        }
+                    }
+
                     android.util.Log.d("TdmAuth", "splashDone=$splashDone, accepted=$accepted, isConfigured=${authVm.isConfigured}, authState=$authState, freshLogin=$freshLogin")
 
                     when {
@@ -71,11 +121,12 @@ class MainActivity : ComponentActivity() {
                             prefs.disclaimerAccepted.value = true
                         }
                         // 3. Skip auth gate when Clerk is not configured (dev mode)
-                        !authVm.isConfigured -> TdmNavGraph()
-                        // 4. Restoring saved session — show nothing while SharedPreferences is read
-                        authState is AuthState.Loading -> Box(Modifier.fillMaxSize()
-                            .background(androidx.compose.ui.graphics.Color(0xFF0A0E1A)))
-                        // 5. Fresh login/signup: show welcome screen once, then go to app
+                        !authVm.isConfigured -> TdmNavGraph(authVm = authVm)
+                        // 4. Fresh login/signup: show welcome screen once, then go to app
+                        //    (AuthState.Loading is NOT intercepted here: the saved
+                        //    session is restored synchronously, so Loading only means
+                        //    a sign-in is in flight — the login screen shows its own
+                        //    button spinner for that, which beats a blank screen.)
                         authState is AuthState.Authenticated && freshLogin -> {
                             val auth = authState as AuthState.Authenticated
                             WelcomeScreen(
@@ -84,18 +135,20 @@ class MainActivity : ComponentActivity() {
                                 onContinue = { authVm.consumeWelcome() },
                             )
                         }
-                        // 6. Already authenticated (session restore or after welcome)
-                        authState is AuthState.Authenticated -> TdmNavGraph()
-                        // 7. Sign-up screen
+                        // 5. Already authenticated (session restore or after welcome)
+                        authState is AuthState.Authenticated -> TdmNavGraph(authVm = authVm)
+                        // 6. Sign-up screen
                         showSignUp -> SignUpScreen(
                             authState = authState,
                             onSignUp  = { email, pw -> authVm.signUp(email, pw) },
+                            onGoogleSignIn = { authVm.startGoogleSignIn() },
                             onGoToLogin = { showSignUp = false; authVm.clearError() },
                         )
-                        // 8. Login screen (Clerk)
+                        // 7. Login screen (Clerk + Google)
                         else -> LoginScreen(
                             authState  = authState,
                             onSignIn   = { email, pw -> authVm.signIn(email, pw) },
+                            onGoogleSignIn = { authVm.startGoogleSignIn() },
                             onGoToSignUp = { showSignUp = true; authVm.clearError() },
                         )
                     }
@@ -109,16 +162,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun FirstLaunchDisclaimer(onAccept: () -> Unit) {
     // Dark deep-navy gradient background (ZEN. "Begin your practice" screen)
-    val bgGradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF0A0E1A),
-            Color(0xFF101524),
-            Color(0xFF0F1117),
-        )
-    )
+    val bgGradient = AuthBackgroundGradient
     // Accent decorative blobs (like ZEN. cosmic background)
-    val blob1 = Color(0xFF3B6CC0).copy(alpha = 0.25f)
-    val blob2 = Color(0xFF7B3FC4).copy(alpha = 0.18f)
+    val blob1 = AuthBlobBlue.copy(alpha = 0.25f)
+    val blob2 = AuthBlobPurple.copy(alpha = 0.18f)
 
     Box(
         Modifier
@@ -212,7 +259,7 @@ private fun FirstLaunchDisclaimer(onAccept: () -> Unit) {
                     Text(
                         "I understand — get started",
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF0A0E1A)
+                        color = AuthInk
                     )
                 }
 

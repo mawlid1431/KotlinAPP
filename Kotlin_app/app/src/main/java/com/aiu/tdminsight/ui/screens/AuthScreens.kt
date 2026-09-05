@@ -25,15 +25,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aiu.tdminsight.auth.AuthState
+import com.aiu.tdminsight.ui.theme.AuthBackgroundGradient
+import com.aiu.tdminsight.ui.theme.AuthBlobBlue
+import com.aiu.tdminsight.ui.theme.AuthBlobPurple
+import com.aiu.tdminsight.ui.theme.AuthInk
 import com.aiu.tdminsight.ui.theme.TdmNumericMono
 
 // ── Shared background style (matches FirstLaunchDisclaimer in MainActivity) ──
 
-private val AuthBg = Brush.verticalGradient(
-    colors = listOf(Color(0xFF0A0E1A), Color(0xFF101524), Color(0xFF0F1117))
-)
-private val BlobBlue   = Color(0xFF3B6CC0).copy(alpha = 0.22f)
-private val BlobPurple = Color(0xFF7B3FC4).copy(alpha = 0.16f)
+private val AuthBg     = AuthBackgroundGradient
+private val BlobBlue   = AuthBlobBlue.copy(alpha = 0.22f)
+private val BlobPurple = AuthBlobPurple.copy(alpha = 0.16f)
 
 @Composable
 private fun AuthBackground(content: @Composable BoxScope.() -> Unit) {
@@ -110,12 +112,68 @@ private fun AuthField(
     }
 }
 
+// ── "Continue with Google" button (Clerk oauth_google) ────────────────
+
+@Composable
+private fun OrDivider() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        HorizontalDivider(Modifier.weight(1f), color = Color.White.copy(alpha = 0.15f))
+        Text(
+            "or",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.45f),
+        )
+        HorizontalDivider(Modifier.weight(1f), color = Color.White.copy(alpha = 0.15f))
+    }
+}
+
+@Composable
+private fun GoogleButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.12f))
+            .clickable(enabled = enabled) { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Google "G" mark drawn in-place so no image asset is required.
+            Box(
+                Modifier.size(22.dp).clip(CircleShape).background(Color.White),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "G",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold, fontSize = 14.sp,
+                    ),
+                    color = Color(0xFF4285F4),
+                )
+            }
+            Text(
+                text,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White,
+            )
+        }
+    }
+}
+
 // ── Login screen ──────────────────────────────────────────────────────────────
 
 @Composable
 fun LoginScreen(
     authState: AuthState,
     onSignIn: (email: String, password: String) -> Unit,
+    onGoogleSignIn: () -> Unit,
     onGoToSignUp: () -> Unit,
 ) {
     var email    by remember { mutableStateOf("") }
@@ -219,17 +277,25 @@ fun LoginScreen(
                     if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = Color(0xFF0A0E1A),
+                            color = AuthInk,
                             strokeWidth = 2.5.dp,
                         )
                     } else {
                         Text(
                             "Sign in",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = Color(0xFF0A0E1A),
+                            color = AuthInk,
                         )
                     }
                 }
+
+                OrDivider()
+
+                GoogleButton(
+                    text = "Continue with Google",
+                    enabled = !isLoading,
+                    onClick = onGoogleSignIn,
+                )
 
                 // Secondary — go to sign up
                 Box(
@@ -342,7 +408,7 @@ fun WelcomeScreen(
                     Text(
                         "Continue to app  →",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color(0xFF0A0E1A),
+                        color = AuthInk,
                     )
                 }
                 Spacer(Modifier.height(20.dp))
@@ -357,6 +423,7 @@ fun WelcomeScreen(
 fun SignUpScreen(
     authState: AuthState,
     onSignUp: (email: String, password: String) -> Unit,
+    onGoogleSignIn: () -> Unit,
     onGoToLogin: () -> Unit,
 ) {
     var email     by remember { mutableStateOf("") }
@@ -456,17 +523,25 @@ fun SignUpScreen(
                     if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = Color(0xFF0A0E1A),
+                            color = AuthInk,
                             strokeWidth = 2.5.dp,
                         )
                     } else {
                         Text(
                             "Create account",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = Color(0xFF0A0E1A),
+                            color = AuthInk,
                         )
                     }
                 }
+
+                OrDivider()
+
+                GoogleButton(
+                    text = "Continue with Google",
+                    enabled = !isLoading,
+                    onClick = onGoogleSignIn,
+                )
 
                 Box(
                     Modifier

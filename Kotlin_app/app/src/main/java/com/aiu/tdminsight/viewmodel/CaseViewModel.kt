@@ -12,7 +12,10 @@ import com.aiu.tdminsight.data.validation.ValidationReport
 import com.aiu.tdminsight.domain.engine.VancoEngine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 data class CaseUiState(
@@ -51,23 +54,23 @@ class CaseViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<CaseUiState> = _uiState.asStateFlow()
 
     fun updatePatient(patient: PatientInput) {
-        _uiState.value = _uiState.value.copy(patient = patient)
+        _uiState.update { it.copy(patient = patient) }
     }
 
     fun updateDosing(dosing: DosingInput) {
-        _uiState.value = _uiState.value.copy(dosing = dosing)
+        _uiState.update { it.copy(dosing = dosing) }
     }
 
     fun updatePreSample(pre: PreSampleInput) {
-        _uiState.value = _uiState.value.copy(pre = pre)
+        _uiState.update { it.copy(pre = pre) }
     }
 
     fun updatePostSample(post: PostSampleInput) {
-        _uiState.value = _uiState.value.copy(post = post)
+        _uiState.update { it.copy(post = post) }
     }
 
     fun selectWorkflow(workflow: VancoWorkflow) {
-        _uiState.value = _uiState.value.copy(selectedWorkflow = workflow)
+        _uiState.update { it.copy(selectedWorkflow = workflow) }
     }
 
     fun validate() {
@@ -92,31 +95,36 @@ class CaseViewModel(application: Application) : AndroidViewModel(application) {
                     s.pre.hoursBeforeDose, s.post.hoursAfterEndOfInfusion),
             )
         }
-        _uiState.value = _uiState.value.copy(validationReport = report)
+        _uiState.update { it.copy(validationReport = report) }
     }
 
     fun runCalculation() {
-        val s = _uiState.value
         validate()
-        if (!_uiState.value.validationReport.isValid) return
+        // Read the snapshot AFTER validating so the inputs and the validation
+        // verdict below are guaranteed to describe the same state.
+        val s = _uiState.value
+        if (!s.validationReport.isValid) return
 
-        _uiState.value = _uiState.value.copy(isCalculating = true, result = null)
+        _uiState.update { it.copy(isCalculating = true, result = null) }
         viewModelScope.launch {
-            val result = when (s.selectedWorkflow) {
-                VancoWorkflow.PRE ->
-                    VancoEngine.calculatePre(PreWorkflowInput(s.patient, s.dosing, s.pre))
-                VancoWorkflow.POST ->
-                    VancoEngine.calculatePost(PostWorkflowInput(s.patient, s.dosing, s.post))
-                VancoWorkflow.PRE_POST ->
-                    VancoEngine.calculatePrePost(PrePostWorkflowInput(s.patient, s.dosing, s.pre, s.post))
+            // The PK engine is pure CPU work — keep it off the main thread.
+            val result = withContext(Dispatchers.Default) {
+                when (s.selectedWorkflow) {
+                    VancoWorkflow.PRE ->
+                        VancoEngine.calculatePre(PreWorkflowInput(s.patient, s.dosing, s.pre))
+                    VancoWorkflow.POST ->
+                        VancoEngine.calculatePost(PostWorkflowInput(s.patient, s.dosing, s.post))
+                    VancoWorkflow.PRE_POST ->
+                        VancoEngine.calculatePrePost(PrePostWorkflowInput(s.patient, s.dosing, s.pre, s.post))
+                }
             }
-            _uiState.value = _uiState.value.copy(result = result, isCalculating = false)
+            _uiState.update { it.copy(result = result, isCalculating = false) }
 
             // Fire-and-forget persistence — a Supabase failure never affects the result shown to the user.
             if (result is CalculationResult.Success) {
                 launch {
                     try {
-                        supabaseRepository.saveCase(_uiState.value, result)
+                        supabaseRepository.saveCase(s.patient, s.dosing, s.pre, s.post, result)
                     } catch (e: Exception) {
                         Log.w("CaseViewModel", "Supabase save skipped: ${e.message}")
                     }

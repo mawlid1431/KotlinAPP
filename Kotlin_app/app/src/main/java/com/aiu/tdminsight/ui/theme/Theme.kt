@@ -1,6 +1,8 @@
 package com.aiu.tdminsight.ui.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -70,9 +72,18 @@ fun TDMInsightTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            // Walk the ContextWrapper chain instead of casting directly: the
+            // view's context is not always the Activity (dialogs, ComposeView
+            // hosts), and a hard cast would throw ClassCastException there.
+            val window = view.context.findActivity()?.window
+            if (window != null) {
+                @Suppress("DEPRECATION") // Kept for API < 35, where edge-to-edge
+                // does not colour the status bar for us. Removing it would change
+                // the app's appearance on older devices.
+                run { window.statusBarColor = colorScheme.background.toArgb() }
+                WindowCompat.getInsetsController(window, view)
+                    .isAppearanceLightStatusBars = !darkTheme
+            }
         }
     }
 
@@ -84,4 +95,11 @@ fun TDMInsightTheme(
             content     = content,
         )
     }
+}
+
+/** Finds the hosting Activity, or null when this view is not inside one. */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity       -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else              -> null
 }

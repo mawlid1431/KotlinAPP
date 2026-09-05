@@ -3,9 +3,13 @@ package com.aiu.tdminsight.data.supabase
 import android.util.Log
 import com.aiu.tdminsight.auth.AuthRepository
 import com.aiu.tdminsight.data.model.CalculationResult
+import com.aiu.tdminsight.data.model.DosingInput
+import com.aiu.tdminsight.data.model.PatientInput
+import com.aiu.tdminsight.data.model.PostSampleInput
+import com.aiu.tdminsight.data.model.PreSampleInput
 import com.aiu.tdminsight.data.model.VancoWorkflow
-import com.aiu.tdminsight.ui.screens.HistoryEntry
-import com.aiu.tdminsight.viewmodel.CaseUiState
+import com.aiu.tdminsight.data.model.HistoryEntry
+import com.aiu.tdminsight.data.model.UserProfile
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
@@ -22,19 +26,26 @@ class SupabaseRepository(
     private val authRepo: AuthRepository,
 ) {
     companion object {
-        private const val TABLE = "cases"
-        private const val TAG   = "SupabaseRepo"
+        private const val TABLE          = "cases"
+        private const val PROFILE_TABLE  = "user_profiles"
+        private const val TAG            = "SupabaseRepo"
     }
 
     /**
      * Save a completed calculation case.
      * Returns true on success, false on any failure (calculation is unaffected either way).
      */
-    suspend fun saveCase(state: CaseUiState, result: CalculationResult.Success): Boolean {
+    suspend fun saveCase(
+        patient: PatientInput,
+        dosing: DosingInput,
+        pre: PreSampleInput,
+        post: PostSampleInput,
+        result: CalculationResult.Success,
+    ): Boolean {
         return try {
             val userId = authRepo.savedSession()?.userId ?: "anonymous"
-            val pk     = state.patient
-            val ds     = state.dosing
+            val pk     = patient
+            val ds     = dosing
             val r      = result.intermediate
 
             val dto = CaseDto(
@@ -48,10 +59,10 @@ class SupabaseRepository(
                 doseMg                = ds.doseMg,
                 intervalHours         = ds.intervalHours,
                 infusionDurationHours = ds.infusionDurationHours,
-                preConcMgL            = if (result.workflow != VancoWorkflow.POST)  state.pre.preDoseConcentration  else null,
-                preTimeH              = if (result.workflow != VancoWorkflow.POST)  state.pre.hoursBeforeDose       else null,
-                postConcMgL           = if (result.workflow != VancoWorkflow.PRE)   state.post.postDoseConcentration else null,
-                postTimeH             = if (result.workflow != VancoWorkflow.PRE)   state.post.hoursAfterEndOfInfusion else null,
+                preConcMgL            = if (result.workflow != VancoWorkflow.POST)  pre.preDoseConcentration  else null,
+                preTimeH              = if (result.workflow != VancoWorkflow.POST)  pre.hoursBeforeDose       else null,
+                postConcMgL           = if (result.workflow != VancoWorkflow.PRE)   post.postDoseConcentration else null,
+                postTimeH             = if (result.workflow != VancoWorkflow.PRE)   post.hoursAfterEndOfInfusion else null,
                 kePerHour             = r.kePerHour,
                 halfLifeHours         = r.halfLifeHours,
                 vdL                   = r.vdL,
@@ -92,6 +103,97 @@ class SupabaseRepository(
         } catch (e: Exception) {
             Log.w(TAG, "loadRecentCases failed: ${e.message}")
             emptyList()
+        }
+    }
+
+    // ── User profile: Clerk identity -> Supabase ──────────────────────────
+
+    /**
+     * Creates or updates this user's row in `user_profiles`.
+     *
+     * Uses a single UPSERT keyed on `user_id` (the table's primary key, which
+     * holds the Clerk user ID). Because it is one atomic statement:
+     *   - first login  -> INSERT, one new row
+     *   - every login after -> UPDATE of that same row
+     * There is no read-then-write gap, so two rapid logins cannot race into
+     * two rows. This is what satisfies "repeated logins must not duplicate
+     * the user".
+     *
+     * Only Clerk-owned columns are sent, so institution / department / role
+     * set inside the app or the SQL editor are never overwritten by a login.
+     */
+    suspend fun syncUserProfile(
+        userId: String,
+        email: String,
+        firstName: String?,
+        lastName: String?,
+        displayName: String?,
+        avatarUrl: String?,
+    ): Boolean {
+        if (userId.isBlank()) {
+            Log.w(TAG, "syncUserProfile skipped: blank Clerk user id")
+            return false
+        }
+        return try {
+            val dto = UserProfileSyncDto(
+                userId      = userId,
+                email       = email,
+                firstName   = firstName,
+                lastName    = lastName,
+                displayName = displayName,
+                avatarUrl   = avatarUrl,
+            )
+            // onConflict = the primary key, so this is INSERT-or-UPDATE in one
+            // atomic statement. defaultToNull = false keeps columns that are
+            // absent from the payload (institution/department/role) as they are.
+            supabase.from(PROFILE_TABLE).upsert(
+                listOf(dto),
+                onConflict = "user_id",
+                defaultToNull = false,
+            )
+            Log.d(TAG, "Profile synced for $userId")
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "syncUserProfile failed: ${e.message}")
+            false
+        }
+    }
+
+    /** Reads this user's stored profile, or null if there is no row / it failed. */
+    suspend fun loadUserProfile(userId: String): UserProfile? {
+        if (userId.isBlank()) return null
+        return try {
+            supabase.from(PROFILE_TABLE)
+                .select { filter { eq("user_id", userId) } }
+                .decodeList<UserProfileDto>()
+                .firstOrNull()
+                ?.toUserProfile()
+        } catch (e: Exception) {
+            Log.w(TAG, "loadUserProfile failed: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Removes every row this user owns, for the "Delete account" flow.
+     *
+     * Both deletes are filtered by `eq("user_id", userId)` with the id taken
+     * from the signed-in session, so this can only ever affect the caller's
+     * own data — never another user's.
+     */
+    suspend fun deleteAllUserData(userId: String): Boolean {
+        if (userId.isBlank()) {
+            Log.w(TAG, "deleteAllUserData refused: blank Clerk user id")
+            return false
+        }
+        return try {
+            supabase.from(TABLE).delete { filter { eq("user_id", userId) } }
+            supabase.from(PROFILE_TABLE).delete { filter { eq("user_id", userId) } }
+            Log.d(TAG, "Deleted all Supabase data for $userId")
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "deleteAllUserData failed: ${e.message}")
+            false
         }
     }
 }

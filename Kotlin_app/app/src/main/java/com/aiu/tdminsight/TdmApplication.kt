@@ -23,14 +23,17 @@ class TdmApplication : Application() {
 
     val supabaseClient by lazy { SupabaseClientProvider.create() }
 
+    /** Shared by Clerk (device token) and AuthRepository (session) — one store. */
+    private val authPrefs by lazy { getSharedPreferences("tdm_auth", MODE_PRIVATE) }
+
     val clerkAuthManager by lazy {
-        ClerkAuthManager(BuildConfig.CLERK_PUBLISHABLE_KEY)
+        ClerkAuthManager(BuildConfig.CLERK_PUBLISHABLE_KEY, authPrefs)
     }
 
     val authRepository by lazy {
         AuthRepository(
             clerk = clerkAuthManager,
-            prefs = getSharedPreferences("tdm_auth", MODE_PRIVATE),
+            prefs = authPrefs,
         )
     }
 
