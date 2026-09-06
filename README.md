@@ -30,8 +30,9 @@ Academic project — CDE2313, **Albukhary International University (AIU)**.
 12. [Repository Structure](#12-repository-structure)
 13. [Tech Stack](#13-tech-stack)
 14. [Quick Start](#14-quick-start)
-15. [Landing Page](#15-landing-page)
-16. [Credits](#credits)
+15. [Build, Testing & Run Guide](#15-build-testing--run-guide)
+16. [Landing Page](#16-landing-page)
+17. [Credits](#credits)
 
 ---
 
@@ -562,7 +563,7 @@ KotlinAPP/
 │   ├── README.md              ← ★ full setup & run guide (backend, Clerk, phone, terminal)
 │   ├── app/                   ← Android module — Kotlin source & Compose UI
 │   ├── supabase/schema.sql    ← database schema + seed data
-│   ├── apk/app-release.apk    ← prebuilt release build
+│   ├── apk/TdmInsight.apk     ← prebuilt APK to install or share
 │   ├── secrets.defaults.properties   ← credential template
 │   └── gradlew / gradlew.bat
 ├── landingPage/               ← React 19 + Vite + TypeScript marketing site
@@ -714,7 +715,7 @@ adb logcat -s ClerkAuthManager SupabaseRepo
 
 ### Just want to try the app?
 
-Install the prebuilt APK at `Kotlin_app/apk/app-release.apk` (or the **Download APK**
+Install the prebuilt APK at `Kotlin_app/apk/TdmInsight.apk` (or the **Download APK**
 button on the landing page). Allow "install from this source" when Android prompts.
 
 ### Troubleshooting
@@ -730,7 +731,228 @@ The three most common issues:
 
 ---
 
-## 15. Landing Page
+## 15. Build, Testing & Run Guide
+
+This section records the verified build, the device test that was carried out, and every
+way to build, install and run the app.
+
+### 15.1 Application verification summary
+
+The TDM Insight Android application has been successfully built and tested.
+
+| Item | Value |
+|---|---|
+| Build system | Gradle (Kotlin DSL) |
+| Build type | Debug |
+| APK generated | ✅ `app-debug.apk` |
+| Application package | `com.aiu.tdminsight` |
+| Main Activity | `com.aiu.tdminsight/.MainActivity` |
+
+**APK locations**
+
+```text
+Kotlin_app/
+└── apk/
+    ├── app-debug.apk
+    └── TdmInsight.apk
+```
+
+The main APK to use is:
+
+```text
+Kotlin_app/apk/TdmInsight.apk
+```
+
+### 15.2 Device testing
+
+The application was tested on a connected Samsung Android device. The following was verified:
+
+- APK installed successfully
+- Application launched successfully
+- `MainActivity` opened without crashing
+- Home dashboard loaded correctly
+- Navigation between application screens worked
+- Settings screen opened correctly
+- Authenticated user profile information was displayed correctly
+- No startup crash was detected during testing
+
+The current application is therefore considered **successfully built and runnable**.
+
+### 15.3 How to run the application
+
+There are two recommended ways to run TDM Insight.
+
+#### Option 1 — Run directly from Android Studio
+
+The easiest method for development and testing.
+
+**Step 1 — Open the project.** Open Android Studio and select the project folder:
+
+```text
+Kotlin_app
+```
+
+Wait for Android Studio to finish loading and syncing the Gradle project.
+
+**Step 2 — Connect your Android device.** Connect your Samsung Android phone to the
+computer by USB. Make sure that:
+
+- Developer Options are enabled
+- USB debugging is enabled
+- The phone allows USB debugging from this computer
+
+An Android emulator can be used instead.
+
+**Step 3 — Select the device.** In the Android Studio toolbar, open the device dropdown
+and select your connected Samsung device or the emulator.
+
+**Step 4 — Run.** Click the green **Run ▶** button, or press:
+
+```text
+Shift + F10
+```
+
+Android Studio will build the application, install the APK on the selected device, and
+launch it automatically.
+
+#### Option 2 — Run using PowerShell
+
+You can also build and install from the command line. Open PowerShell inside the project
+directory `Kotlin_app`, for example:
+
+```powershell
+cd "C:\Users\<YourUsername>\...\Kotlin_app"
+```
+
+**Step 1 — Build and install:**
+
+```powershell
+$env:ANDROID_PREFS_ROOT=$null; .\gradlew.bat installDebug
+```
+
+This compiles the Kotlin application, builds the debug APK, and installs it on the
+connected Android device.
+
+**Step 2 — Launch the application:**
+
+```powershell
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell am start -n com.aiu.tdminsight/.MainActivity
+```
+
+TDM Insight should now open on the connected device.
+
+### 15.4 Create a fresh APK
+
+Whenever you need a new APK, open PowerShell in `Kotlin_app` and run:
+
+```powershell
+$env:ANDROID_PREFS_ROOT=$null; .\gradlew.bat assembleDebug
+```
+
+Gradle writes the APK to:
+
+```text
+app\build\outputs\apk\debug\app-debug.apk
+```
+
+**Copy the new APK into the project's `apk/` folder:**
+
+```powershell
+Copy-Item "app\build\outputs\apk\debug\app-debug.apk" "apk\TdmInsight.apk" -Force
+```
+
+The final APK is then available at:
+
+```text
+Kotlin_app\apk\TdmInsight.apk
+```
+
+You can copy this APK to your phone, share it, or use it for installation.
+
+### 15.5 Install the APK manually
+
+If `apk\TdmInsight.apk` already exists you do not need to rebuild. Transfer the APK to the
+phone and open it there, or install it with ADB:
+
+```powershell
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r "apk\TdmInsight.apk"
+```
+
+Then launch it:
+
+```powershell
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell am start -n com.aiu.tdminsight/.MainActivity
+```
+
+### 15.6 Quick workflow for future testing
+
+**Android Studio:**
+
+```text
+Android Studio
+    ↓
+Open Kotlin_app
+    ↓
+Connect Samsung device
+    ↓
+Select device
+    ↓
+Run ▶
+    ↓
+Application installs
+    ↓
+Application launches
+```
+
+**PowerShell:**
+
+```text
+Open PowerShell
+    ↓
+cd Kotlin_app
+    ↓
+.\gradlew.bat installDebug
+    ↓
+ADB launches MainActivity
+    ↓
+Test application
+```
+
+### 15.7 Quick workflow for creating the final APK
+
+When you only need a fresh APK:
+
+```powershell
+cd "Kotlin_app"
+```
+
+```powershell
+$env:ANDROID_PREFS_ROOT=$null; .\gradlew.bat assembleDebug
+```
+
+```powershell
+Copy-Item "app\build\outputs\apk\debug\app-debug.apk" "apk\TdmInsight.apk" -Force
+```
+
+The final APK will be:
+
+```text
+Kotlin_app/apk/TdmInsight.apk
+```
+
+### 15.8 Important notes
+
+- The project already works and does not require restructuring just to run it.
+- Use **Android Studio → Run ▶** when you want to develop and test quickly.
+- Use `installDebug` when you want to build and install directly from PowerShell.
+- Use `assembleDebug` when you only want to generate an APK.
+- The APK generated by Gradle is initially located in `app/build/outputs/apk/debug/`.
+- The project's convenient distributable copy is kept at `apk/TdmInsight.apk`.
+- The application package name is `com.aiu.tdminsight`.
+
+---
+
+## 16. Landing Page
 
 A React 19 + Vite marketing site lives in `landingPage/` and is deployed separately.
 

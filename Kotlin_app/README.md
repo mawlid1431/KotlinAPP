@@ -327,7 +327,7 @@ Output: `app/build/outputs/apk/release/app-release-unsigned.apk`
 
 For a lecturer or tester who just wants to try the app:
 
-1. Copy `Kotlin_app/apk/app-release.apk` to the phone, or download it from the
+1. Copy `Kotlin_app/apk/TdmInsight.apk` to the phone, or download it from the
    landing page's **Download APK** button.
 2. Open it from the phone's Files app.
 3. Android asks to allow installs from this source → **Settings → Allow from this source**.
