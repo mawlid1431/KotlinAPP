@@ -662,7 +662,7 @@ export function LandingPage() {
             <SectionHead
               eyebrow="Our Team"
               title="The people behind TDM Insight"
-              lead="Developed as an academic project at Al-Madinah International University (AIU)."
+              lead="Developed as an academic project at Albukhary International University (AIU)."
             />
 
             {/* Supervisor — centred, full row */}
