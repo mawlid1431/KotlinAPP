@@ -4,6 +4,10 @@ A native Android application for calculating vancomycin pharmacokinetic paramete
 AUC₂₄-guided therapeutic drug monitoring (TDM).  
 Built with Kotlin · Jetpack Compose · Material 3 · MVVM · Supabase · Clerk Auth.
 
+Academic project — CDE2313, **Albukhary International University (AIU)**.
+
+➡️ **Just want to set it up and run it on a phone?** Go straight to [`Kotlin_app/README.md`](Kotlin_app/README.md) — the full setup & run guide (Supabase, Clerk, Android Studio, terminal).
+
 ---
 
 ## Table of Contents
@@ -23,7 +27,11 @@ Built with Kotlin · Jetpack Compose · Material 3 · MVVM · Supabase · Clerk 
 9. [Database Schema](#9-database-schema)
 10. [Credential System](#10-credential-system)
 11. [Clinical Reference](#11-clinical-reference)
-12. [How to Build & Run](#12-how-to-build--run)
+12. [Repository Structure](#12-repository-structure)
+13. [Tech Stack](#13-tech-stack)
+14. [Quick Start](#14-quick-start)
+15. [Landing Page](#15-landing-page)
+16. [Credits](#credits)
 
 ---
 
@@ -544,41 +552,223 @@ project structure is visible to collaborators without exposing real keys.
 
 ---
 
-## 12. How to Build & Run
+## 12. Repository Structure
 
-### Prerequisites
-- Android Studio Hedgehog or later
-- JDK 17
-- Android device or emulator (API 26+)
-
-### 1. Clone the repository
-```bash
-git clone <your-repo-url>
-cd application/Kotlin_app
+```
+KotlinAPP/
+├── README.md                  ← this file — architecture & documentation
+├── LICENCE
+├── Kotlin_app/                ← ★ the Android project (open THIS in Android Studio)
+│   ├── README.md              ← ★ full setup & run guide (backend, Clerk, phone, terminal)
+│   ├── app/                   ← Android module — Kotlin source & Compose UI
+│   ├── supabase/schema.sql    ← database schema + seed data
+│   ├── apk/app-release.apk    ← prebuilt release build
+│   ├── secrets.defaults.properties   ← credential template
+│   └── gradlew / gradlew.bat
+├── landingPage/               ← React 19 + Vite + TypeScript marketing site
+└── presentation/              ← coursework presentation material
 ```
 
-### 2. Add credentials to `local.properties`
-Copy `secrets.defaults.properties` → `local.properties` and fill in real values:
+The Android app and the landing page are **two independent projects**. Build them separately.
+
+---
+
+## 13. Tech Stack
+
+| Layer | Technology |
+|---|---|
+| UI | Jetpack Compose · Material 3 |
+| Language | Kotlin (JVM target 21) |
+| Architecture | MVVM — ViewModel + StateFlow + Navigation Compose |
+| **Authentication** | **Clerk** — Frontend API called directly over Ktor HTTP (email/password, email verification, Google OAuth) |
+| **Backend / Database** | **Supabase** — hosted PostgreSQL + REST API via the Supabase Kotlin SDK |
+| Networking | Ktor client (OkHttp engine) + kotlinx.serialization |
+| Local storage | SharedPreferences (session token, disclaimer flag, Clerk user ID) |
+| Build | Gradle Kotlin DSL · Version catalog · compileSdk 35 · minSdk 26 |
+| Landing page | React 19 · Vite 6 · TypeScript · Tailwind 4 |
+
+There is **no server of our own** to deploy. Clerk handles identity; Supabase handles
+persistence. The app talks to both directly, and all pharmacokinetic maths runs on-device
+in `domain/engine/VancoEngine.kt`.
+
+---
+
+## 14. Quick Start
+
+> 📖 **The complete step-by-step guide — including Supabase setup, Clerk setup, connecting
+> a physical phone to Android Studio, and running from the terminal — lives in
+> [`Kotlin_app/README.md`](Kotlin_app/README.md).** This section is the short version.
+
+### Prerequisites
+
+- Android Studio Ladybug (2024.2) or newer
+- **JDK 21** (bundled with Android Studio — set it as the Gradle JDK)
+- Android SDK 35 ("Android 15") installed via the SDK Manager
+- An Android phone on **Android 8.0 (API 26)** or newer, with a **data** USB cable
+- Free accounts on [Supabase](https://supabase.com) and [Clerk](https://dashboard.clerk.com)
+
+### 1. Clone
+
+```bash
+git clone https://github.com/mawlid1431/KotlinAPP.git
+```
+
+```bash
+cd KotlinAPP/Kotlin_app
+```
+
+Open the **`Kotlin_app`** folder in Android Studio — not the repository root.
+
+### 2. Set up the backend (Supabase)
+
+1. Create a project at <https://supabase.com/dashboard>.
+2. **SQL Editor → New query** → paste the whole of `Kotlin_app/supabase/schema.sql` → **Run**.
+   This creates `cases`, `user_profiles`, the index, the RLS policies and 12 seed cases.
+3. **Project Settings → API** → copy the **Project URL** and the **anon (public) key**.
+
+> ⚠️ Never put the Supabase `service_role` key in the app — anon key only.
+
+### 3. Set up authentication (Clerk)
+
+1. Create an application at <https://dashboard.clerk.com>.
+2. Enable **Email + Password**, and enable the **Google** social connection
+   (without it, Google sign-in returns *"strategy is not enabled"*).
+3. Optionally add a JWT template named `supabase`:
+   `{ "role": "authenticated", "email": "{{user.primary_email_address}}" }`
+4. **API Keys** → copy the **Publishable key** (`pk_test_…`).
+
+> ⚠️ The Clerk **secret key** is server-side only and must never enter the app.
+
+The app registers the deep link `tdminsight://oauth-callback` for the Google OAuth
+round-trip; it is already declared in `AndroidManifest.xml`.
+
+### 4. Add your credentials
+
+```bash
+cp secrets.defaults.properties local.properties
+```
+
+Fill in `Kotlin_app/local.properties` (gitignored):
+
 ```properties
 CLERK_PUBLISHABLE_KEY=pk_test_...
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_ANON_KEY=eyJ...
 ```
 
-### 3. Run the database schema
-Open the Supabase SQL Editor and run `supabase/schema.sql`.  This creates the `cases`
-and `user_profiles` tables and inserts 12 seed cases for testing.
+These are injected into `BuildConfig` at compile time (see §10). Sync Gradle afterwards.
 
-### 4. Build & install
+### 5. Connect your phone
+
+1. Phone: **Settings → About phone → tap Build number 7 times** to unlock Developer options.
+2. **Developer options → USB debugging → On**.
+3. Plug in the USB cable, set the USB mode to **File transfer**, and accept the
+   **"Allow USB debugging?"** prompt on the phone.
+4. Confirm it is visible:
+
 ```bash
-./gradlew assembleDebug
-adb install app/build/outputs/apk/debug/app-debug.apk
+adb devices
 ```
 
-Or press **Run ▶** in Android Studio.
+*Wireless alternative:* with the phone and computer on the **same Wi-Fi**, use
+**Developer options → Wireless debugging → Pair device with pairing code**, then
+**Pair Devices Using Wi-Fi** in Android Studio (or `adb pair <ip>:<port>` and
+`adb connect <ip>:5555`).
 
-### 5. First launch
-1. Accept the disclaimer
-2. Sign up with an email address (Clerk handles verification)
-3. Open the **New Case** wizard and run a PRE\_POST calculation
-4. Check the **History** screen — your case will appear, loaded live from Supabase
+### 6. Run
+
+**From Android Studio:** select the **app** configuration and your phone in the toolbar,
+then press **Run ▶** (`Shift + F10`).
+
+**From the terminal** (Android Studio's Terminal tab, working directory `Kotlin_app/`):
+
+```bash
+./gradlew installDebug
+```
+
+On Windows:
+
+```bash
+gradlew.bat installDebug
+```
+
+Then launch it:
+
+```bash
+adb shell am start -n com.aiu.tdminsight/.MainActivity
+```
+
+Watch the logs:
+
+```bash
+adb logcat -s ClerkAuthManager SupabaseRepo
+```
+
+### 7. First launch
+
+1. Accept the disclaimer.
+2. Sign up with an email address (Clerk sends a verification code) or use Google.
+3. **New Case** → enter a fictional patient → run a **PRE_POST** calculation.
+4. Open **History** — the case loads back from Supabase, confirming the backend is wired.
+   You can also see the new row in **Supabase → Table Editor → `cases`**.
+
+### Just want to try the app?
+
+Install the prebuilt APK at `Kotlin_app/apk/app-release.apk` (or the **Download APK**
+button on the landing page). Allow "install from this source" when Android prompts.
+
+### Troubleshooting
+
+The full table is in [`Kotlin_app/README.md` §11](Kotlin_app/README.md#11-troubleshooting).
+The three most common issues:
+
+| Symptom | Fix |
+|---|---|
+| "No Gradle project found" | You opened the repo root — open `Kotlin_app/` instead |
+| Phone missing from `adb devices` | Charge-only cable, USB debugging off, or USB mode not set to *File transfer* |
+| Sign-in fails / History empty | Wrong keys in `local.properties`, or `schema.sql` was never run |
+
+---
+
+## 15. Landing Page
+
+A React 19 + Vite marketing site lives in `landingPage/` and is deployed separately.
+
+```bash
+cd landingPage
+```
+
+```bash
+npm install
+```
+
+```bash
+npm run dev
+```
+
+Production build (output in `landingPage/dist/`):
+
+```bash
+npm run build
+```
+
+Requires Node 20+. The downloadable APK it serves is `landingPage/public/TDM-Insight.apk` —
+replace that file when you ship a new release build.
+
+---
+
+## Credits
+
+Developed as an academic project for **CDE2313** at
+**Albukhary International University (AIU)**.
+
+| Role | Name |
+|---|---|
+| Supervisor | Ts. Mohd Zulkifli Mohd Zaki — Lecturer, Faculty of CS & IT |
+| Student Developer | Mowlid Haibe |
+| Student Developer | Abdinaazir Mustafe |
+| Student Developer | Elham Ahmedngus |
+
+> **Disclaimer:** TDM Insight is an educational tool. Use it with fictional patient data
+> only. All results must be reviewed by a qualified clinical pharmacist before any dosing
+> decision is made.
