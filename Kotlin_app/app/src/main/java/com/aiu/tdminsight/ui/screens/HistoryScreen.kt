@@ -116,7 +116,13 @@ fun HistoryScreen(
                 }
                 entries.isEmpty() -> RecentCasesEmpty()
                 else -> entries.forEach { entry ->
-                    HistoryCaseCard(entry)
+                    HistoryCaseCard(
+                        e = entry,
+                        onOpen = {
+                            vm.select(entry)
+                            nav.navigate(Routes.HISTORY_DETAIL)
+                        },
+                    )
                     Spacer(Modifier.height(16.dp))
                 }
             }
@@ -127,7 +133,7 @@ fun HistoryScreen(
 }
 
 @Composable
-private fun HistoryCaseCard(e: HistoryEntry) {
+private fun HistoryCaseCard(e: HistoryEntry, onOpen: () -> Unit) {
     val tdm = MaterialTheme.tdm
     val inTarget = e.auc24 in 400.0..600.0
     val statusColor = when {
@@ -151,7 +157,9 @@ private fun HistoryCaseCard(e: HistoryEntry) {
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
@@ -222,6 +230,27 @@ private fun HistoryCaseCard(e: HistoryEntry) {
                     .fillMaxWidth()
                     .height(120.dp)
             )
+
+            // ── Open the full record ──────────────────────────────────────
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    "View full details & share",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .size(16.dp),
+                )
+            }
         }
     }
 }

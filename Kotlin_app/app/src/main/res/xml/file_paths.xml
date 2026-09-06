@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Exposes only the generated PDF reports in the app's own cache directory to
+  the share sheet. Nothing else in the app's storage is shared.
+-->
+<paths>
+    <cache-path name="shared_reports" path="shared_reports/" />
+</paths>

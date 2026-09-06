@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aiu.tdminsight.TdmApplication
 import com.aiu.tdminsight.data.model.HistoryEntry
+import com.aiu.tdminsight.ui.export.CaseReportPdf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,29 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
 
     private val _entries = MutableStateFlow<List<HistoryEntry>>(emptyList())
     internal val entries: StateFlow<List<HistoryEntry>> = _entries.asStateFlow()
+
+    // The case the user tapped, shown on the detail screen. Held here rather
+    // than passed through the route so the full record travels without being
+    // serialised into a URL.
+    private val _selected = MutableStateFlow<HistoryEntry?>(null)
+    internal val selected: StateFlow<HistoryEntry?> = _selected.asStateFlow()
+
+    fun select(entry: HistoryEntry) { _selected.value = entry }
+
+    /**
+     * The signed-in Clerk user, printed on an exported report as the person who
+     * created the case. History is filtered to this user's own rows server-side,
+     * so the owner of every visible case is this account.
+     */
+    fun reportAuthor(): CaseReportPdf.Author? =
+        (getApplication<android.app.Application>() as TdmApplication)
+            .authRepository.savedSession()?.let {
+                CaseReportPdf.Author(
+                    name   = it.fullName,
+                    email  = it.email,
+                    userId = it.userId,
+                )
+            }
 
     init { load() }
 
@@ -52,6 +76,12 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             val live = supabaseRepo.loadRecentCases()
             _entries.value    = live
+            // Keep the open detail in sync with a refresh, and drop it if the
+            // case is gone (e.g. after "clear all cases").
+            _selected.value = _selected.value?.let { sel ->
+                live.firstOrNull { it.rowId != null && it.rowId == sel.rowId }
+                    ?: live.firstOrNull { it.caseId == sel.caseId && it.date == sel.date }
+            }
             _isLiveData.value = live.isNotEmpty()
             _isLoading.value  = false
         }

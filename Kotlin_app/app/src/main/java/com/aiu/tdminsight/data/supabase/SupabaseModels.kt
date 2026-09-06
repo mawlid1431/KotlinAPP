@@ -68,6 +68,22 @@ internal fun CaseDto.toHistoryEntry() = HistoryEntry(
     t12       = halfLifeHours ?: 0.0,
     vdL       = vdL ?: 0.0,
     clLH      = clearanceLPerHour ?: 0.0,
+
+    // Full detail — read back so the detail screen and PDF export have the
+    // complete record instead of only the summary fields above.
+    rowId        = id,
+    createdAtIso = createdAt,
+    weightKg     = weightKg,
+    ageYears     = ageYears,
+    isMale       = isMale,
+    scrUmolL     = scrUmolL,
+    vdLPerKg     = vdLPerKg ?: 0.0,
+    preConcMgL   = preConcMgL,
+    preTimeH     = preTimeH,
+    postConcMgL  = postConcMgL,
+    postTimeH    = postTimeH,
+    cmin         = cmin,
+    cmax         = cmax,
 )
 
 

@@ -25,6 +25,7 @@ object Routes {
     const val EXPLANATION       = "explanation"
     const val ERROR             = "engine_error"
     const val HISTORY           = "history"
+    const val HISTORY_DETAIL    = "history_detail"
     const val SETTINGS          = "settings"
     const val PROFILE           = "profile"
     const val DISCLAIMER        = "disclaimer"
@@ -69,6 +70,7 @@ fun TdmNavGraph(authVm: AuthViewModel) {
         composable(Routes.EXPLANATION) { ExplanationScreen(navController, vm = vm) }
         composable(Routes.ERROR)       { ErrorScreen(navController, vm = vm) }
         composable(Routes.HISTORY)     { HistoryScreen(navController, vm = historyVm) }
+        composable(Routes.HISTORY_DETAIL) { HistoryDetailScreen(navController, vm = historyVm) }
         composable(Routes.SETTINGS)    { SettingsScreen(navController, historyVm = historyVm, authVm = authVm) }
         composable(Routes.PROFILE)     { ProfileScreen(navController, authVm = authVm) }
         composable(Routes.DISCLAIMER)  { DisclaimerScreen(navController) }
