@@ -210,24 +210,6 @@ fun MedicationSelectScreen(nav: NavController, vm: CaseViewModel = viewModel()) 
                 icon = Icons.Filled.MedicalServices,
                 onClick = { nav.navigate(Routes.WORKFLOW_SELECT) }
             )
-            Spacer(Modifier.height(10.dp))
-            ZenSelectionCard(
-                title = "Gentamicin",
-                subtitle = "Coming soon",
-                selected = false,
-                enabled = false,
-                icon = Icons.Outlined.Healing,
-                onClick = {}
-            )
-            Spacer(Modifier.height(10.dp))
-            ZenSelectionCard(
-                title = "Amikacin",
-                subtitle = "Coming soon",
-                selected = false,
-                enabled = false,
-                icon = Icons.Outlined.Science,
-                onClick = {}
-            )
 
             Spacer(Modifier.weight(1f))
             PrimaryPillButton("Continue  →") { nav.navigate(Routes.WORKFLOW_SELECT) }

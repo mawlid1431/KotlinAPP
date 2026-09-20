@@ -443,6 +443,14 @@ private fun ResultBody(pk: PkResults, tau: Double, nav: NavController) {
             )
         }
     }
+
+    // ── Done — closes the case and returns to Home ────────────────────────
+    // popUpTo(HOME, inclusive) clears the whole wizard back stack, so the
+    // hardware back button cannot walk the user back into a finished case.
+    Spacer(Modifier.height(4.dp))
+    PrimaryPillButton("Done") {
+        nav.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }
+    }
     Spacer(Modifier.height(16.dp))
 }
 
