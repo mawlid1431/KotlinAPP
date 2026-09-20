@@ -15,12 +15,14 @@ val localProps = Properties().also { props ->
     }
 }
 
-val clerkKey = localProps.getProperty("CLERK_PUBLISHABLE_KEY").takeUnless { it.isNullOrBlank() }
-    ?: "pk_test_cmVhbC1hc3AtNjI1NS5jbGVyay5hY2NvdW50cy5kZXYk"
-val supabaseUrl = localProps.getProperty("SUPABASE_URL").takeUnless { it.isNullOrBlank() }
-    ?: "https://mhijnqqdichqsfplwfaa.supabase.co"
-val supabaseAnonKey = localProps.getProperty("SUPABASE_ANON_KEY").takeUnless { it.isNullOrBlank() }
-    ?: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oaWpucXFkaWNocXNmcGx3ZmFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNzE3MzIsImV4cCI6MjEwMzg0NzczMn0.1HhpMhdKfm_qEFi-dC2c_3b8wEsFmzjsDcyJP8fUEh4"
+// Credentials come from local.properties only — that file is gitignored, so
+// real keys never enter Git. An empty fallback keeps the build working on a
+// fresh clone: SupabaseClientProvider.isConfigured and ClerkAuthManager
+// .isConfigured both read these and degrade gracefully when they are blank.
+// Copy secrets.defaults.properties to local.properties and fill it in.
+val clerkKey = localProps.getProperty("CLERK_PUBLISHABLE_KEY").orEmpty()
+val supabaseUrl = localProps.getProperty("SUPABASE_URL").orEmpty()
+val supabaseAnonKey = localProps.getProperty("SUPABASE_ANON_KEY").orEmpty()
 
 android {
     namespace = "com.aiu.tdminsight"

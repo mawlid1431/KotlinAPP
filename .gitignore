@@ -43,3 +43,20 @@ dist/
 .env.local
 .env.*.local
 *.tsbuildinfo
+
+# ── Large local archives ───────────────────────────────────────────────
+# landingPage.zip is 460MB — GitHub rejects files over 100MB and the push
+# dies with "remote end hung up unexpectedly". Never commit archives.
+*.zip
+
+# ── Presentation / submission material — kept local ────────────────────
+presentation/
+
+# ── Credentials — never commit real values ─────────────────────────────
+# Real keys belong in local.properties (ignored above), never in a
+# tracked file. secrets.defaults.properties is a placeholder template
+# and is intentionally still tracked.
+secrets.properties
+*.keystore
+*.jks
+google-services.json
