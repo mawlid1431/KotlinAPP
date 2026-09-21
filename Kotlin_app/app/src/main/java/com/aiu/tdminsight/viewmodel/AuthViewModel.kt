@@ -225,29 +225,34 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     // -- Delete account ----------------------------------------------------
 
     /**
-     * Deletes this user's Supabase rows, then their Clerk account, then ends
-     * the session. Ordering matters: the Supabase rows are keyed by the Clerk
-     * user ID, so they must go first while that ID is still known.
+     * Deletes this user's Clerk account, then their Supabase rows, then ends
+     * the session.
+     *
+     * Clerk goes FIRST because it is the step that can legitimately refuse —
+     * this instance has reverification enabled, so a destructive action can
+     * come back 403. Deleting Supabase first meant a refused Clerk deletion
+     * left the user with an intact account and every saved case gone, with no
+     * way to undo it. Now a refusal costs nothing.
+     *
+     * The Clerk user ID is captured in `auth.userId` before the account goes,
+     * so the Supabase rows keyed by it are still reachable afterwards.
      */
     fun deleteAccount() {
         val auth = _authState.value as? AuthState.Authenticated ?: return
         _accountDeletion.value = AccountDeletionState.InProgress
         viewModelScope.launch {
-            val dataDeleted = supabase.deleteAllUserData(auth.userId)
             when (val clerkResult = authRepo.deleteClerkAccount()) {
                 is ClerkDeleteResult.Success -> {
+                    // The account is gone; clearing its rows is best-effort
+                    // cleanup and must not block sign-out if it fails.
+                    supabase.deleteAllUserData(auth.userId)
                     _accountDeletion.value = AccountDeletionState.Idle
                     signOut()
                 }
                 is ClerkDeleteResult.Failure -> {
-                    // The Supabase rows may already be gone; say so plainly
-                    // rather than implying the account is fully intact.
-                    _accountDeletion.value = AccountDeletionState.Failed(
-                        if (dataDeleted)
-                            "Your saved cases were removed, but the Clerk account could not be deleted: " + clerkResult.message
-                        else
-                            clerkResult.message
-                    )
+                    // Nothing was deleted, so the account and cases are intact.
+                    _accountDeletion.value =
+                        AccountDeletionState.Failed(clerkResult.message)
                 }
             }
         }

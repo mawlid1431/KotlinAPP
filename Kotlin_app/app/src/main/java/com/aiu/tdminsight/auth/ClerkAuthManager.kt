@@ -78,6 +78,15 @@ class ClerkAuthManager(
      * array. Ktor does not raise on 4xx, so the body has to be inspected here
      * for the human-readable reason to reach the UI.
      */
+    /** The machine-readable `code` of Clerk's first error, e.g. "session_reverification_required". */
+    private fun clerkErrorCodeFrom(raw: String): String? = try {
+        json.decodeFromString<ClerkErrorResponse>(raw).errors?.firstOrNull()
+            ?.code
+            ?.takeIf { it.isNotBlank() }
+    } catch (_: Exception) {
+        null
+    }
+
     private fun clerkErrorFrom(raw: String): String? = try {
         json.decodeFromString<ClerkErrorResponse>(raw).errors?.firstOrNull()
             ?.let { it.longMessage ?: it.message }
@@ -475,10 +484,27 @@ class ClerkAuthManager(
             val httpResponse = http.delete(endpoint("/v1/me")) { clerkHeaders() }
             if (httpResponse.status.isSuccess()) {
                 clearDeviceToken()
-                ClerkDeleteResult.Success
-            } else {
-                ClerkDeleteResult.Failure("Clerk refused the deletion (HTTP ${httpResponse.status.value}).")
+                return ClerkDeleteResult.Success
             }
+            // Surface what Clerk actually said. Reporting only the status code
+            // hid the real cause: this instance has reverification enabled, so
+            // a destructive action needs a fresh credential check first, and
+            // the bare DELETE comes back 403 every time.
+            val raw = httpResponse.bodyAsText()
+            val code = clerkErrorCodeFrom(raw)
+            android.util.Log.w(
+                TAG,
+                "deleteOwnAccount refused: HTTP ${httpResponse.status.value} code=$code body=$raw"
+            )
+            val message = when {
+                code == "session_reverification_required" || httpResponse.status.value == 403 ->
+                    "For security, Clerk needs you to confirm it is you before deleting " +
+                        "the account. Sign out, sign back in, then try again straight away."
+                else ->
+                    clerkErrorFrom(raw)
+                        ?: "Clerk refused the deletion (HTTP ${httpResponse.status.value})."
+            }
+            ClerkDeleteResult.Failure(message)
         } catch (e: io.ktor.client.plugins.ClientRequestException) {
             ClerkDeleteResult.Failure(
                 errorMessage(e, "Could not delete the Clerk account. Account deletion may be disabled.")
