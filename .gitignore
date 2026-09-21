@@ -28,6 +28,10 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+*.mcp.json
+*.mcp.json/
+*.env/
+*.env
 
 # Submission documents — kept local, not pushed to Git
 Instruction_for_submission-DOCS/
